@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 from text import Text
 
 
@@ -9,3 +10,5 @@ class Main:
 
 if __name__ == '__main__':
     Main()
+=======
+>>>>>>> vazquez
