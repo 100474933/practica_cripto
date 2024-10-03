@@ -1,2 +1,0 @@
-import registro
-import login 
