@@ -1,6 +1,4 @@
-from DataBase import DataBase
 import os
-import BBDD
 
 class Text:
 
@@ -50,6 +48,7 @@ class Text:
         password = input("\nIntroduce tu contraseña: ")
 
         # Creando nueva cuenta
+        from DataBase import DataBase
         DataBase.create_account(name, password)
 
         # Pantalla de carga
@@ -79,6 +78,7 @@ class Text:
         password = input("\nIntroduce tu contraseña: ")
 
         # Iniciando sesión
+        from DataBase import DataBase
         DataBase.login(nombre, password)
 
         # Pantalla de carga
