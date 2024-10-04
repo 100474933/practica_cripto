@@ -1,6 +1,5 @@
-<<<<<<< HEAD
 from text import Text
-
+from DataBase import DataBase
 
 # Clase Main del programa
 class Main:
@@ -10,5 +9,3 @@ class Main:
 
 if __name__ == '__main__':
     Main()
-=======
->>>>>>> vazquez
