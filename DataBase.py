@@ -1,5 +1,4 @@
 import json
-from text import Text
 
 class DataBase:
     def create_account(bbdd, name, password):
