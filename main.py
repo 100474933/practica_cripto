@@ -1,5 +1,5 @@
 from text import Text
-from DataBase import DataBase
+
 
 # Clase Main del programa
 class Main:

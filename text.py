@@ -49,7 +49,8 @@ class Text:
 
         # Creando nueva cuenta
         from DataBase import DataBase
-        DataBase.create_account(name, password)
+        db = DataBase()
+        db.create_account(name, password)
 
         # Pantalla de carga
         Text.loading()
@@ -79,7 +80,8 @@ class Text:
 
         # Iniciando sesión
         from DataBase import DataBase
-        DataBase.login(nombre, password)
+        db = DataBase()
+        db.login(nombre, password)
 
         # Pantalla de carga
         Text.loading()
