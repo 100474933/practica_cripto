@@ -65,7 +65,7 @@ class DataBase:
     
     def login(self, name, password):
         for user in self.data:
-            if (user['name'] == name) and (user['password'] == password):
+            if (user['name'] == name):
                 salt = bytes.fromhex(user['salt'])
                 encrypted_password = bytes.fromhex(user['password'])
                 
