@@ -1,4 +1,5 @@
 import os
+from DataBase import DataBase
 
 class Text:
 
@@ -33,6 +34,8 @@ class Text:
         else:
             # Salir del programa
             Text.quit_program()
+    
+    @staticmethod
     def Registo():
         # Pantalla de carga
         Text.loading()
@@ -48,9 +51,12 @@ class Text:
         password = input("\nIntroduce tu contraseña: ")
 
         # Creando nueva cuenta
-        from DataBase import DataBase
         db = DataBase()
-        db.create_account(name, password)
+        try:
+            db.create_account(name, password)
+        except ValueError as e:
+            print(e)
+            Text.Registo()
 
         # Pantalla de carga
         Text.loading()
@@ -64,6 +70,7 @@ class Text:
         # Volviendo al estado inicial
         Text.inicial()
 
+    @staticmethod
     def IniciarSesion():
         # Pantalla de carga
         Text.loading()
@@ -79,9 +86,13 @@ class Text:
         password = input("\nIntroduce tu contraseña: ")
 
         # Iniciando sesión
-        from DataBase import DataBase
         db = DataBase()
-        db.login(nombre, password)
+        try:
+            db.login(nombre, password)
+        except ValueError as e:
+            print(e)
+            Text.IniciarSesion()
+        
 
         # Pantalla de carga
         Text.loading()
@@ -95,6 +106,7 @@ class Text:
         # Volviendo al estado inicial
         Text.inicial()
     
+    @staticmethod
     def quit_program():
         # Pantalla de carga
         Text.loading()
@@ -108,3 +120,4 @@ class Text:
         # Saliendo del programa
         os._exit(0)
 
+Text.inicial()
