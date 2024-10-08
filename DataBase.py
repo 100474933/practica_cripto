@@ -1,6 +1,6 @@
 import json
 import os
-from encryptation import Encryption
+from encryption import Encryption
 
 
 class DataBase:
