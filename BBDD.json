@@ -1,0 +1,11 @@
+[
+	{
+		"name": "maria",
+		"password": "Mariamaria1"
+	},
+	{
+		"name": "lalalal",
+		"salt": "0b431ff84d4348a87bf9498eea0b9191",
+		"password": "1aa136b1aa6e05d8f3053f644d37f41e0d5d5521461fbb96d8b35bc63d3d3b61"
+	}
+]

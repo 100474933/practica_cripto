@@ -1,5 +1,7 @@
 import json
 import os
+from encryptation import Encryption
+
 
 class DataBase:
     def __init__(self):
@@ -37,16 +39,27 @@ class DataBase:
             if not (mayus and minus and num):
                 raise ValueError("La contraseña debe contener al menos una mayúscula, una minúscula y un número.")
             
-            print('Contraseña válida.')
+            # Generamos una sal y una clave
+            salt = os.urandom(16)
+            key = Encryption.cifrar_key(password, salt)
+            
+            # Ciframos la contraseña
+            encrypted_password = Encryption.cifrar_datos(password, key)
             
             # Añadimos el nuevo usuario a la base de datos
-            new_user = {'name': name, 'password': password}
+            new_user = {
+                'name': name,
+                'salt': salt.hex(),
+                'password': encrypted_password.hex()
+            }
+
             self.data.append(new_user)
             with open('BBDD.json', 'w') as bd:
                 json.dump(self.data, bd, indent='\t')
             
+            print('Cuenta creada con éxito.')
             return True
-                       
+            
         except Exception as e:
             raise e
     
