@@ -66,7 +66,18 @@ class DataBase:
     def login(self, name, password):
         for user in self.data:
             if (user['name'] == name) and (user['password'] == password):
-                return True
+                salt = bytes.fromhex(user['salt'])
+                encrypted_password = bytes.fromhex(user['password'])
+                
+                # Generamos la clave a partir de la contraseña ingresada y la sal almacenada
+                key = Encryption.cifrar_key(password, salt)
+                
+                # Desciframos la contraseña almacenada
+                decrypted_password = Encryption.descifrar_datos(encrypted_password, key)
+                
+                if decrypted_password == password:
+                    print("Sesión iniciada con éxito.")
+                    return True
 
         raise ValueError("El nombre y/o contraseña no son correctos.")
 

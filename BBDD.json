@@ -7,5 +7,10 @@
 		"name": "lalalal",
 		"salt": "0b431ff84d4348a87bf9498eea0b9191",
 		"password": "1aa136b1aa6e05d8f3053f644d37f41e0d5d5521461fbb96d8b35bc63d3d3b61"
+	},
+	{
+		"name": "Lola",
+		"salt": "e1966382eae34bb6d772a575a98cffb0",
+		"password": "3ac19a4e0226d8f1360ff2160d313385f1a9d3db6e4155751613c3260e80680e"
 	}
 ]
