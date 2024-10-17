@@ -2,6 +2,8 @@ import json
 import os
 from datetime import date, datetime, timedelta
 from users import DataBase
+from encryptation import Encryption
+import base64
 
 class Renting:
     db = DataBase()
@@ -173,7 +175,29 @@ class Renting:
                     'return_time': freturn_time, 
                     'rented': True, 
                     'reserve_number': reserve_number}
-                data.append(new_data)
+                # Convertimos el diccionario a una cadena JSON
+                new_data_str = json.dumps(new_data)
+                
+                # Generamos una sal y una clave
+                salt = os.urandom(16)
+                key = Encryption.cifrar_key(new_data_str, salt)
+                
+                # Ciframos los datos de la reserva
+                encrypted_data = Encryption.cifrar_datos(new_data_str, key)
+                print(f"Cifrado simétrico con Fernet y clave de longitud {len(key)*8} bits.")
+                
+                # Generamos HMAC para los datos cifrados
+                mac = Encryption.generar_hmac(encrypted_data.decode(), key)
+                print(f"HMAC generado con algoritmo SHA-256 y clave de longitud {len(key)*8} bits.")
+                
+                # Añadimos los datos cifrados y la etiqueta HMAC a la base de datos
+                encrypted_entry = {
+                    'salt': base64.urlsafe_b64encode(salt).decode(),
+                    'encrypted_data': encrypted_data.decode(),
+                    'mac': mac.decode()
+                }
+
+                data.append(encrypted_entry)
                 Renting.load_data(data)
                 Renting.loading()
                 print(f"RESERVA REALIZADA CON ÉXITO. SU NUMERO DE RESERVA ES {reserve_number}")
@@ -210,8 +234,25 @@ class Renting:
             print('MOSTRANDO SUS RESERVAS')
             cont = 1
             Renting.loading()
-            for user in data:
-                if user['name'] == name and user['rented'] == True:
+            for entry in data:
+                # Decodificamos la sal y los datos cifrados
+                salt = base64.urlsafe_b64decode(entry['salt'])
+                encrypted_data = entry['encrypted_data'].encode()
+                mac = entry['mac'].encode()
+                
+                # Generamos la clave a partir de los datos cifrados y la sal almacenada
+                key = Encryption.cifrar_key(encrypted_data.decode(), salt)
+                
+                # Verificamos HMAC
+                if not Encryption.verificar_hmac(encrypted_data.decode(), key, mac):
+                    print("La integridad de la información del alquiler no se puede verificar.")
+                    continue
+                
+                # Desciframos los datos de la reserva
+                decrypted_data = Encryption.descifrar_datos(encrypted_data, key)
+                reserve = json.loads(decrypted_data)
+
+                if reserve['name'] == name and reserve['rented'] == True:
                     print(f"RESERVA {cont}:")
                     print(f"RESERVA DEL COCHE {user['car']} DEL DIA {user['rent_time']} HASTA EL DIA {user['return_time']}")
                     print('\n')
@@ -235,7 +276,25 @@ class Renting:
             
             # Comprobamos que la reserva existe y eliminamos si es correcto
             updated_data = []
-            for reserve in data:
+            for entry in data:
+                # Decodificamos la sal y los datos cifrados
+                salt = base64.urlsafe_b64decode(entry['salt'])
+                encrypted_data = entry['encrypted_data'].encode()
+                mac = entry['mac'].encode()
+                
+                # Generamos la clave a partir de los datos cifrados y la sal almacenada
+                key = Encryption.cifrar_key(encrypted_data.decode(), salt)
+                
+                # Verificamos HMAC
+                if not Encryption.verificar_hmac(encrypted_data.decode(), key, mac):
+                    print("La integridad de la información del alquiler no se puede verificar.")
+                    updated_data.append(entry)
+                    continue
+                
+                # Desciframos los datos de la reserva
+                decrypted_data = Encryption.descifrar_datos(encrypted_data, key)
+                reserve = json.loads(decrypted_data)
+
                 if (reserve['name'] == name) and (reserve['rented'] == True) and (reserve['reserve_number'] == command):
                     cond = True
                     print('RESERVA ELIMINADA CORRECTAMENTE')

@@ -1,7 +1,9 @@
 [
 	{
-		"name": "Alejandro",
-		"password": "Alejandro2003",
-		"login": false
+		"name": "Pepa",
+		"salt": "RbnSFWnqJQxejQ202HGRIg==",
+		"password": "gAAAAABnEVofRFgIxV7VERoWU_KiIDUStcXoFMM5gQwr-m_qdTOLanobSg4H951_f4eCSL4uMFXd1oB9fNoDJyYceUfsVSSAcQ==",
+		"mac": "lhsZkM3hV8R3ALoYtev4--ih2JHUhh2w9wcG5bCdJc0=",
+		"login": true
 	}
 ]
