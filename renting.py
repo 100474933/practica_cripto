@@ -50,8 +50,6 @@ class Renting:
         for car in data:
             if car['freturn_date'] >= actual_date:
                 car['rented'] = False
-        
-        
     
     @staticmethod
     def menu(name):
@@ -80,7 +78,6 @@ class Renting:
                 Renting.user_reservations(name)
             elif command == 3:
                 cond = True
-                Renting.logout(name)
             else: 
                 command = input("\nLAS OPCIONES SON LAS QUE APARECEN EN EL MENU(1, 2 y 3).ELIGE UNA OPCIÓN PARA CONTINUAR: ")
     
@@ -222,23 +219,28 @@ class Renting:
     @staticmethod
     def cancel_reservation(name):
         data = Renting.open_data()
-        if data != None:
+        
+        if data is not None:
             command = input("POR FAVOR, INTRODUZCA EL NUMERO DE LA RESERVA QUE DESEA ELIMINAR: ")
             Renting.loading()
             cond = False
             
-            #Comprobamos que la reserva existe
+            # Comprobamos que la reserva existe y eliminamos si es correcto
+            updated_data = []
             for reserve in data:
                 if (reserve['name'] == name) and (reserve['rented'] == True) and (reserve['reserve_number'] == command):
-                    del(reserve)
-                    Renting.load_data(data)
                     cond = True
                     print('RESERVA ELIMINADA CORRECTAMENTE')
-                    Renting.loading()
-                    Renting.menu()
-            
-            #Si la reserva no existe le damos la oportunidad de intentarlo de nuevo o de salir
-            if not cond:
+                else:
+                    updated_data.append(reserve)  # Añadir solo las reservas que no se eliminaron
+
+            # Guardamos los cambios si eliminamos alguna reserva
+            if cond:
+                Renting.load_data(updated_data)
+                Renting.loading()
+                Renting.menu(name)
+            else:
+                # Si la reserva no existe le damos la oportunidad de intentarlo de nuevo o de salir
                 print('NUMERO DE RESERVA INCORRECTO. POR FAVOR COMPRUEBE SUS RESERVAS')
                 command = input('SI DESEA INTENTARLO DE NUEVO PULSE 1, SI DESEA SALIR PULSE CUALQUIER TECLA')
                 if command == '1':
@@ -249,13 +251,7 @@ class Renting:
             print('NO HAY RESERVAS QUE ELIMINAR')
             Renting.user_reservations(name)
 
-    @staticmethod
-    def logout(name):
-        print('CERRANDO SESION, ESPERE UN MOMENTO')
-        Renting.loading()
-        Renting.db.logout(name)
-            
-        
+
         
         
         

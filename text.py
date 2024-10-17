@@ -50,7 +50,7 @@ class Text:
             Text.registro()
         elif command == "2":
             # Login de cuenta
-            Text.IniciarSesion()
+            Text.login()
         else:
             # Salir del programa
             Text.quit_program()
@@ -90,9 +90,12 @@ class Text:
         # Volviendo al estado inicial
         Text.inicial()
 
+    @staticmethod
+    def logout(name):
+        Text.db.logout(name)
     
     @staticmethod
-    def IniciarSesion():
+    def login():
         # Pantalla de carga
         Text.loading()
 
@@ -117,8 +120,14 @@ class Text:
         # Pantalla de carga
         Text.loading()
 
-        # Volviendo al estado inicial
+        # Cargando el menu
         Renting.menu(nombre)
+        
+        Text.db.logout(nombre)
+        
+        Text.inicial()
+        
+        
     
     @staticmethod
     def quit_program():

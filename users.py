@@ -76,7 +76,10 @@ class DataBase:
                 user['login'] = False 
                 with open('BBDD_users.json', 'w') as bd:
                     json.dump(self.data, bd, indent = '\t')
+                print(f"EL USUARIO {name} CERRO SESIÓN EXITOSAMENTE.")
                 return True
+        
+        raise ValueError("NO SE PUDO CERRAR SESIÓN CORRECTAMENTE")
     
 
 
