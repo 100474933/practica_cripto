@@ -46,13 +46,19 @@ class Renting:
     @staticmethod
     def time_out():
         data = Renting.open_data()
-        actual_date = date.today()
+        actual_date = datetime.now()
         for car in data:
-            if car['freturn_date'] >= actual_date:
+            return_date = car['return_date']
+            return_date_obj = datetime.strptime(return_date, "%d/%m/%Y")
+            if return_date_obj >= actual_date:
                 car['rented'] = False
+        
+        Renting.load_data(data)
     
     @staticmethod
     def menu(name):
+        #Cada vez que iniciamos sesion se actualiza el estado de renting de los coches
+        Renting.time_out()
         cond = False
         
         print("  _____   ____   ____  __ __  /\ ")
@@ -161,8 +167,8 @@ class Renting:
                 new_data = {
                     'name': name, 
                     'car': car, 
-                    'rent_time': frent_date, 
-                    'return_time': freturn_date, 
+                    'rent_date': frent_date, 
+                    'return_date': freturn_date, 
                     'rented': True, 
                     'reserve_number': reserve_number}
                 data.append(new_data)

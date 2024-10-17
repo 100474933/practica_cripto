@@ -91,10 +91,6 @@ class Text:
         Text.inicial()
 
     @staticmethod
-    def logout(name):
-        Text.db.logout(name)
-    
-    @staticmethod
     def login():
         # Pantalla de carga
         Text.loading()
@@ -123,8 +119,10 @@ class Text:
         # Cargando el menu
         Renting.menu(nombre)
         
+        #Cuando acabe cerramos la sesion
         Text.db.logout(nombre)
         
+        #Volvemos al menu inicial
         Text.inicial()
         
         
