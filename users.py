@@ -6,9 +6,9 @@ class DataBase:
         self.data = []  # Inicializamos la base de datos como una lista vacía por defecto.
 
         # Verificamos si el archivo existe
-        if os.path.exists('BBDD.json'):
+        if os.path.exists('BBDD_users.json'):
             try:
-                with open('BBDD.json', 'r') as data:
+                with open('BBDD_users.json', 'r') as data:
                     content = data.read().strip()  # Leemos el archivo y eliminamos espacios en blanco
                     if content:  # Solo intentamos cargar el JSON si hay contenido
                         self.data = json.loads(content)
@@ -52,7 +52,7 @@ class DataBase:
             # Añadimos el nuevo usuario a la base de datos
             new_user = {'name': name, 'password': password, 'login': False}
             self.data.append(new_user)
-            with open('BBDD.json', 'w') as bd:
+            with open('BBDD_users.json', 'w') as bd:
                 json.dump(self.data, bd, indent='\t')
                       
         except Exception as e:
@@ -63,15 +63,19 @@ class DataBase:
         for user in self.data:
             if (user['name'] == name) and (user['password'] == password) and (user['login'] == False):
                 user['login'] = True 
+                with open('BBDD_users.json', 'w') as bd:
+                    json.dump(self.data, bd, indent = '\t')
                 return True
 
         raise ValueError("EL NOMBRE Y/O CONTRAEÑA NO SON CORRECTOS.")
 
-    def logout(self):
+    def logout(self, name):
         #Comprobamos que el usuario esta loggeado para salir de la app.
         for user in self.data:
-            if user['login'] == True:
+            if (user['login'] == True) and (user['name'] == name):
                 user['login'] = False 
+                with open('BBDD_users.json', 'w') as bd:
+                    json.dump(self.data, bd, indent = '\t')
                 return True
     
 

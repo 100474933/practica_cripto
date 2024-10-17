@@ -1,5 +1,6 @@
 import os
-from DataBase import DataBase
+from users import DataBase
+from renting import Renting
 
 class Text:
     db = DataBase()
@@ -117,7 +118,7 @@ class Text:
         Text.loading()
 
         # Volviendo al estado inicial
-        Text.inicial()
+        Renting.menu(nombre)
     
     @staticmethod
     def quit_program():
