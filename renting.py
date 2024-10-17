@@ -48,9 +48,9 @@ class Renting:
         data = Renting.open_data()
         actual_date = datetime.now()
         for car in data:
-            return_date = car['return_date']
-            return_date_obj = datetime.strptime(return_date, "%d/%m/%Y")
-            if return_date_obj >= actual_date:
+            return_date = car['return_time']
+            return_date_obj = datetime.strptime(return_date, "%d/%m/%Y %H:%M:%S")
+            if return_date_obj <= actual_date:
                 car['rented'] = False
         
         Renting.load_data(data)
@@ -140,8 +140,8 @@ class Renting:
                 #Solicitamos la fecha de reserva y validamos que es el formato correcto
                 while True:
                     try: 
-                        rent_date_str = input('\nINTRODUCE UNA FECHA DE RESERVA EN FORMATO DD/MM/AAAA: ')
-                        rent_date = datetime.strptime(rent_date_str, "%d/%m/%Y")
+                        rent_time_str = input('\nINTRODUCE UNA FECHA DE RESERVA EN FORMATO DD/MM/AAAA: ')
+                        rent_time = datetime.strptime(rent_time_str, "%d/%m/%Y")
                         break 
                     except ValueError:
                         print('\nFORMATO DE FECHA INVALIDO, INTENTELO DE NUEVO')
@@ -155,11 +155,13 @@ class Renting:
                         print('POR FAVOR, INGRESE UN NUMERO DE DIAS ENTERO')
                 
                 #Calculamos la fecha de devolución del coche
-                return_date = rent_date + timedelta(days=time)
+                return_time = rent_time + timedelta(days=time)
                 
                 #Formateamos las fechas para que sean strings
-                frent_date = rent_date.strftime("%d/%m/%Y")
-                freturn_date = return_date.strftime("%d/%m/%Y")
+                frent_time = rent_time.strftime("%d/%m/%Y")
+                frent_time += " 08:00:00"
+                freturn_time = return_time.strftime("%d/%m/%Y")
+                freturn_time += " 08:00:00"
                 Renting.loading()
                 print('PROCESANDO SU RESERVA.')
                 #Antes de procesar la reserva creamos un numero de reserva único
@@ -167,8 +169,8 @@ class Renting:
                 new_data = {
                     'name': name, 
                     'car': car, 
-                    'rent_date': frent_date, 
-                    'return_date': freturn_date, 
+                    'rent_time': frent_time, 
+                    'return_time': freturn_time, 
                     'rented': True, 
                     'reserve_number': reserve_number}
                 data.append(new_data)
