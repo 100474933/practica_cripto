@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from users import DataBase
 
 class Renting:
@@ -121,7 +121,7 @@ class Renting:
                 command = input("\nLAS OPCIONES SON LAS QUE APARECEN EN EL MENU(1, 2, 3  y 4).ELIGE UNA OPCIÓN PARA CONTINUAR: ")
     
     @staticmethod
-    def reserve(name, car):
+    def reserve(name, c):
         data = Renting.open_data()
         #Comprobamos que el fichero data no este vacio
         if data != None:    
@@ -132,7 +132,7 @@ class Renting:
                     rented_cars += 1
             
             if rented_cars == 10:
-                print(f"LO SENTIMOS, NO QUEDAN {car} DISPONIBLES. PRUEBE CON OTRO COCHE.")
+                print(f"LO SENTIMOS, NO QUEDAN {c} DISPONIBLES. PRUEBE CON OTRO COCHE.")
                 Renting.loading()
                 Renting.reserve(name)
             #Si quedan coches añadimos la reserva a la base de datos
@@ -168,7 +168,7 @@ class Renting:
                 reserve_number = str(len(data) + 1).zfill(10)
                 new_data = {
                     'name': name, 
-                    'car': car, 
+                    'car': c, 
                     'rent_time': frent_time, 
                     'return_time': freturn_time, 
                     'rented': True, 
