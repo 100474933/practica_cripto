@@ -24,39 +24,35 @@ class DataBase:
             # Verificamos si el nombre de usuario es único
             for user in self.data:
                 if user['name'] == name:
-                    raise ValueError(f"El nombre de usuario {name} ya existe, por favor introduce otro.")
+                    raise ValueError(f"El nombre de usuario {name} ya existe.")
             
-            print("Nombre de usuario válido.")
-            
-            # Verificamos longitud de la contraseña 
+            # Verificamos que la contraseña cumpla con las reglas
             if len(password) < 8:
                 raise ValueError("La contraseña debe contener al menos 8 caracteres.")
             
-            # Verificamos contenido de la contraseña
-            mayus = any(char.isupper() for char in password)
-            minus = any(char.islower() for char in password)
-            num = any(char.isdigit() for char in password)
-            if not (mayus and minus and num):
-                raise ValueError("La contraseña debe contener al menos una mayúscula, una minúscula y un número.")
+            # Generamos la sal y derivamos la clave simétrica a partir de la contraseña
+            salt = os.urandom(16)  # Genera una sal aleatoria de 16 bytes
+            key = Encryption.cifrar_key(password, salt)  # Deriva la clave simétrica usando la contraseña y la sal
             
-            # Generamos una sal y un token para la contraseña
-            salt = os.urandom(16)
-            key = Encryption.cifrar_key(password, salt)
-            token = Encryption.cifrar_datos(password, key)
+            # Ciframos la contraseña con la clave derivada
+            token = Encryption.cifrar_datos(password, key)  # Cifra la contraseña
             
-            # Añadimos el nuevo usuario a la base de datos
+            # Creamos el nuevo usuario con solo 'salt' y 'token'
             new_user = {
-                'name': name,
-                'salt': base64.urlsafe_b64encode(salt).decode(),
-                'token': token.decode(),
-                'login': False
+                'salt': base64.urlsafe_b64encode(salt).decode(),  # Guardamos la sal codificada en base64
+                'token': token.decode()  # Guardamos el token (contraseña cifrada) como string
             }
+            
+            # Añadimos el nuevo usuario a la base de datos (lista en memoria)
             self.data.append(new_user)
+            
+            # Escribimos los cambios en el archivo JSON
             with open('BBDD_users.json', 'w') as bd:
                 json.dump(self.data, bd, indent='\t')
-                      
+        
         except Exception as e:
             raise e
+
     
     def login(self, name, password):
         try:
@@ -64,15 +60,13 @@ class DataBase:
                 if user['name'] == name:
                     salt = base64.urlsafe_b64decode(user['salt'])
                     token = user['token'].encode()
-                    
-                    # Generamos la clave a partir de la contraseña ingresada y la sal almacenada
-                    key = Encryption.cifrar_key(password, salt)
-                    
-                    # Verificamos y desciframos el token
+                    encrypted_key = base64.urlsafe_b64decode(user['encrypted_key'])
+
+                    key = Encryption.descifrar_key_rsa(encrypted_key, self.private_key)  # Descifrar clave con RSA
                     decrypted_password = Encryption.descifrar_datos(token, key)
-                    
-                    if decrypted_password == password and user['login'] == False:
-                        user['login'] = True 
+
+                    if decrypted_password == password and not user['login']:
+                        user['login'] = True
                         with open('BBDD_users.json', 'w') as bd:
                             json.dump(self.data, bd, indent='\t')
                         return True

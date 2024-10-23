@@ -5,5 +5,12 @@
 		"password": "gAAAAABnGVuNjafolHlKAQRbGI3Uvg0vccnT6HBp9_xppHMAls5pLrq2kuZ3wAx0KqY10oHxtuxUNGe35cx-OxG_gisLYGmtlg==",
 		"mac": "2JbWHRhCLttqIDquitrOYDAukaX4jPVbg4hAL6U8w0E=",
 		"login": true
+	},
+	{
+		"name": "juan",
+		"salt": "KPMqsnByOPLV_Jtj7SUwCQ==",
+		"password": "gAAAAABnGVx3bjw73GgqxgYVQ8AUVEkgMkg6Si975YZ-K2KLEwN7xCZ2Q8BVyEtw6qozYpRGhvcARnHvP2AssLGC9k_gK86qAg==",
+		"mac": "9pQJEeI1b3mLyRNjHps_YThnpcp6Hwu5hKLHdU84u7E=",
+		"login": false
 	}
 ]
