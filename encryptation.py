@@ -37,7 +37,24 @@ class Encryption:
         # Descifra los datos y los devuelve
         decrypted_data = fernet.decrypt(encrypted_data) 
         return decrypted_data.decode()  
+    
+    @staticmethod
+    def generar_token(data):
+        # Genera una clave Fernet
+        key = Fernet.generate_key()
+        fernet = Fernet(key)
+        # Cifra los datos y devuelve el token y la clave
+        token = fernet.encrypt(data.encode())
+        return token, key
 
+    @staticmethod
+    def verificar_token(token, key):
+        # Crea un objeto Fernet con la clave proporcionada
+        fernet = Fernet(key)
+        # Descifra el token y devuelve los datos
+        data = fernet.decrypt(token)
+        return data.decode()
+    
     @staticmethod
     def generar_hmac(data, key):
         # Crea un objeto HMAC con la clave proporcionada y el algoritmo SHA-256

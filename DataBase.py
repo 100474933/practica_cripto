@@ -1,16 +1,16 @@
 import json
 import os
-from encryption import Encryption
-
+import base64
+from encryptation import Encryption
 
 class DataBase:
     def __init__(self):
         self.data = []  # Inicializamos la base de datos como una lista vacía por defecto.
 
         # Verificamos si el archivo existe
-        if os.path.exists('BBDD.json'):
+        if os.path.exists('BBDD_users.json'):
             try:
-                with open('BBDD.json', 'r') as data:
+                with open('BBDD_users.json', 'r') as data:
                     content = data.read().strip()  # Leemos el archivo y eliminamos espacios en blanco
                     if content:  # Solo intentamos cargar el JSON si hay contenido
                         self.data = json.loads(content)
@@ -39,46 +39,58 @@ class DataBase:
             if not (mayus and minus and num):
                 raise ValueError("La contraseña debe contener al menos una mayúscula, una minúscula y un número.")
             
-            # Generamos una sal y una clave
+            # Generamos una sal y un token para la contraseña
             salt = os.urandom(16)
             key = Encryption.cifrar_key(password, salt)
-            
-            # Ciframos la contraseña
-            encrypted_password = Encryption.cifrar_datos(password, key)
+            token = Encryption.cifrar_datos(password, key)
             
             # Añadimos el nuevo usuario a la base de datos
             new_user = {
                 'name': name,
-                'salt': salt.hex(),
-                'password': encrypted_password.hex()
+                'salt': base64.urlsafe_b64encode(salt).decode(),
+                'token': token.decode(),
+                'login': False
             }
-
             self.data.append(new_user)
-            with open('BBDD.json', 'w') as bd:
+            with open('BBDD_users.json', 'w') as bd:
                 json.dump(self.data, bd, indent='\t')
-            
-            print('Cuenta creada con éxito.')
-            return True
-            
+                      
         except Exception as e:
             raise e
     
     def login(self, name, password):
-        for user in self.data:
-            if (user['name'] == name):
-                salt = bytes.fromhex(user['salt'])
-                encrypted_password = bytes.fromhex(user['password'])
-                
-                # Generamos la clave a partir de la contraseña ingresada y la sal almacenada
-                key = Encryption.cifrar_key(password, salt)
-                
-                # Desciframos la contraseña almacenada
-                decrypted_password = Encryption.descifrar_datos(encrypted_password, key)
-                
-                if decrypted_password == password:
-                    print("Sesión iniciada con éxito.")
+        try:
+            for user in self.data:
+                if user['name'] == name:
+                    salt = base64.urlsafe_b64decode(user['salt'])
+                    token = user['token'].encode()
+                    
+                    # Generamos la clave a partir de la contraseña ingresada y la sal almacenada
+                    key = Encryption.cifrar_key(password, salt)
+                    
+                    # Verificamos y desciframos el token
+                    decrypted_password = Encryption.descifrar_datos(token, key)
+                    
+                    if decrypted_password == password and user['login'] == False:
+                        user['login'] = True 
+                        with open('BBDD_users.json', 'w') as bd:
+                            json.dump(self.data, bd, indent='\t')
+                        return True
+
+            raise ValueError("El nombre y/o contraseña no son correctos.")
+        except Exception as e:
+            raise e
+
+    def logout(self, name):
+        try:
+            for user in self.data:
+                if user['login'] == True and user['name'] == name:
+                    user['login'] = False 
+                    with open('BBDD_users.json', 'w') as bd:
+                        json.dump(self.data, bd, indent='\t')
+                    print(f"El usuario {name} cerró sesión exitosamente.")
                     return True
-
-        raise ValueError("El nombre y/o contraseña no son correctos.")
-
-
+        
+            raise ValueError("No se pudo cerrar sesión correctamente")
+        except Exception as e:
+            raise e

@@ -5,6 +5,7 @@ from users import DataBase
 from encryptation import Encryption
 import base64
 
+
 class Renting:
     db = DataBase()
     
@@ -50,10 +51,11 @@ class Renting:
         data = Renting.open_data()
         actual_date = datetime.now()
         for car in data:
-            return_date = car['return_time']
-            return_date_obj = datetime.strptime(return_date, "%d/%m/%Y %H:%M:%S")
-            if return_date_obj <= actual_date:
-                car['rented'] = False
+            if 'return_time' in car:
+                return_date = car['return_time']
+                return_date_obj = datetime.strptime(return_date, "%d/%m/%Y %H:%M:%S")
+                if return_date_obj <= actual_date:
+                    car['rented'] = False
         
         Renting.load_data(data)
     
@@ -68,12 +70,21 @@ class Renting:
         print("|  Y Y  \  ___/|   |  \  |  / /\ ")
         print("|__|_|  /\___  >___|  /____/  \/ ")
         print("      \/     \/     \/           ")
+
+        print("    ______             ______             ______                ______                     ______         ")
+        print("   /|_||_\\`.__       /|_||_\\`.__       /|_||_\\`.__          /|_||_\\`.__               /|_||_\\`.__      ")
+        print("  (   _    _ _ \\    (   _    _ _ \\    (   _    _ _ \\       (   _    _ _ \\            (   _    _ _ \\   ")
+        print("  =`-(_)--(_)-'      =`-(_)--(_)-'      =`-(_)--(_)-'         =`-(_)--(_)-'              =`-(_)--(_)-'   ")
+        print("------------------>------------------->------------------>------------------------->------------------>")
+        print(" |    AUDI X5       |  TOYOTA YARIS   |    BMW 320D       |    MITSUBISHI MONTERO   |    SMART BRABUS   |")
+
         
         print("\n1 - RESERVAR COCHES")
         print("\n2 - MIS RESERVAS")
         print("\n3 - CERRAR SESIÓN")
         
         command = int(input("\nELIGE UNA OPCIÓN PARA CONTINUAR: "))
+        print(command)
         
         while not cond:
             Renting.loading()
@@ -88,6 +99,7 @@ class Renting:
                 cond = True
             else: 
                 command = input("\nLAS OPCIONES SON LAS QUE APARECEN EN EL MENU(1, 2 y 3).ELIGE UNA OPCIÓN PARA CONTINUAR: ")
+                Renting.menu(name)
     
     @staticmethod
     def reserve_menu(name):
@@ -121,22 +133,23 @@ class Renting:
                 Renting.reserve(name, 'SMART BRABUS')
             else: 
                 command = input("\nLAS OPCIONES SON LAS QUE APARECEN EN EL MENU(1, 2, 3  y 4).ELIGE UNA OPCIÓN PARA CONTINUAR: ")
+                Renting.menu(name)
     
     @staticmethod
-    def reserve(name, car):
+    def reserve(name, car_model):
         data = Renting.open_data()
         #Comprobamos que el fichero data no este vacio
         if data != None:    
             #Comprobamos que queden coches en el garage
             rented_cars = 0
-            for car in data:
-                if car['car'] == car and car['rented'] == True:
+            for rental in data:
+                if 'car' in rental and rental['car'] == car and rental['rented'] == True:
                     rented_cars += 1
             
             if rented_cars == 10:
                 print(f"LO SENTIMOS, NO QUEDAN {car} DISPONIBLES. PRUEBE CON OTRO COCHE.")
                 Renting.loading()
-                Renting.reserve(name)
+                Renting.reserve(name, car_model)
             #Si quedan coches añadimos la reserva a la base de datos
             else:
                 #Solicitamos la fecha de reserva y validamos que es el formato correcto
@@ -170,7 +183,7 @@ class Renting:
                 reserve_number = str(len(data) + 1).zfill(10)
                 new_data = {
                     'name': name, 
-                    'car': car, 
+                    'car': car_model, 
                     'rent_time': frent_time, 
                     'return_time': freturn_time, 
                     'rented': True, 
@@ -230,41 +243,47 @@ class Renting:
     @staticmethod
     def my_reservations(name):
         data = Renting.open_data()
-        if data != None:
+        cont = 1
+        if data is not None:
             print('MOSTRANDO SUS RESERVAS')
-            cont = 1
             Renting.loading()
             for entry in data:
                 # Decodificamos la sal y los datos cifrados
                 salt = base64.urlsafe_b64decode(entry['salt'])
-                encrypted_data = entry['encrypted_data'].encode()
-                mac = entry['mac'].encode()
                 
+                # Verificar si encrypted_data es string antes de codificar
+                if isinstance(entry['encrypted_data'], str):
+                    encrypted_data = entry['encrypted_data'].encode()
+                else:
+                    print("Error: 'encrypted_data' no es una cadena.")
+                    continue
+
+                mac = entry['mac'].encode()
+
                 # Generamos la clave a partir de los datos cifrados y la sal almacenada
                 key = Encryption.cifrar_key(encrypted_data.decode(), salt)
-                
+
                 # Verificamos HMAC
                 if not Encryption.verificar_hmac(encrypted_data.decode(), key, mac):
-                    print("La integridad de la información del alquiler no se puede verificar.")
                     continue
-                
+
                 # Desciframos los datos de la reserva
                 decrypted_data = Encryption.descifrar_datos(encrypted_data, key)
                 reserve = json.loads(decrypted_data)
 
-                if reserve['name'] == name and reserve['rented'] == True:
+                if reserve['name'] == name and reserve['rented'] is True:
                     print(f"RESERVA {cont}:")
-                    print(f"RESERVA DEL COCHE {user['car']} DEL DIA {user['rent_time']} HASTA EL DIA {user['return_time']}")
+                    print(f"RESERVA DEL COCHE {reserve['car']} DEL DIA {reserve['rent_time']} HASTA EL DIA {reserve['return_time']}")
                     print('\n')
                     cont += 1
-            
+
             if cont == 1:
                 print('NO HAY RESERVAS QUE MOSTRAR')
         else:
             print('NO HAY RESERVAS QUE MOSTRAR')
-        
+
         Renting.user_reservations(name)
-    
+        
     @staticmethod
     def cancel_reservation(name):
         data = Renting.open_data()
@@ -287,7 +306,6 @@ class Renting:
                 
                 # Verificamos HMAC
                 if not Encryption.verificar_hmac(encrypted_data.decode(), key, mac):
-                    print("La integridad de la información del alquiler no se puede verificar.")
                     updated_data.append(entry)
                     continue
                 
