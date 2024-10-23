@@ -51,26 +51,22 @@ class DataBase:
                 
             print('CONTRASEÑA VÁLIDA.')
             
-            # Generamos una sal y una clave
-            salt = os.urandom(16)
-            key = Encryption.cifrar_key(password, salt)
+            # Generamos la sal y derivamos la clave simétrica a partir de la contraseña
+            salt = os.urandom(16)  # Genera una sal aleatoria de 16 bytes
+            key = Encryption.cifrar_key(password, salt)  # Deriva la clave simétrica usando la contraseña y la sal
             
-            # Ciframos la contraseña
-            encrypted_password = Encryption.cifrar_datos(password, key)
-            print(f"Cifrado simétrico con Fernet y clave de longitud {len(key)*8} bits.")
+            # Ciframos la contraseña con la clave derivada
+            token = Encryption.cifrar_datos(password, key)  # Cifra la contraseña
             
-            # Generamos HMAC para la contraseña cifrada
-            mac = Encryption.generar_hmac(encrypted_password.decode(), key)
-            print(f"HMAC generado con algoritmo SHA-256 y clave de longitud {len(key)*8} bits.")
-
-            # Añadimos el nuevo usuario a la base de datos
+            # Creamos el nuevo usuario con solo 'salt' y 'token'
             new_user = {
                 'name': name,
-                'salt': base64.urlsafe_b64encode(salt).decode(),
-                'password': encrypted_password.decode(),
-                'mac': mac.decode(),
+                'salt': base64.urlsafe_b64encode(salt).decode(),  # Guardamos la sal codificada en base64
+                'token': token.decode(),  # Guardamos el token (contraseña cifrada) como string
                 'login': False
             }
+            
+            # Añadimos el nuevo usuario a la base de datos (lista en memoria)
             self.data.append(new_user)
             with open('BBDD_users.json', 'w') as bd:
                 json.dump(self.data, bd, indent='\t')
@@ -83,26 +79,23 @@ class DataBase:
             for user in self.data:
                 if user['name'] == name:
                     salt = base64.urlsafe_b64decode(user['salt'])
-                    encrypted_password = user['password'].encode()
-                    mac = user['mac'].encode()
+                    token = user['token'].encode()
                     
                     # Generamos la clave a partir de la contraseña ingresada y la sal almacenada
                     key = Encryption.cifrar_key(password, salt)
                     
-                    # Verificamos HMAC
-                    if not Encryption.verificar_hmac(encrypted_password.decode(), key, mac):
-                        raise ValueError("La integridad de la contraseña almacenada no se puede verificar.")
-                    print(f"Verificación HMAC con algoritmo SHA-256 y clave de longitud {len(key)*8} bits.")
-                    
-                    # Desciframos la contraseña almacenada
-                    decrypted_password = Encryption.descifrar_datos(encrypted_password, key)
-                    print(f"Descifrado simétrico con Fernet y clave de longitud {len(key)*8} bits.")
+                    # Verificamos y desciframos el token
+                    decrypted_password = Encryption.descifrar_datos(token, key)
                     
                     if decrypted_password == password and user['login'] == False:
                         user['login'] = True 
                         with open('BBDD_users.json', 'w') as bd:
                             json.dump(self.data, bd, indent='\t')
                         return True
+
+            raise ValueError("El nombre y/o contraseña no son correctos.")
+        except Exception as e:
+            raise e
 
             raise ValueError("EL NOMBRE Y/O CONTRASEÑA NO SON CORRECTOS.")
         except Exception as e:

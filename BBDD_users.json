@@ -1,16 +1,8 @@
 [
 	{
-		"name": "NINI",
-		"salt": "jmaafe_bVKE_EPLft1Aptw==",
-		"password": "gAAAAABnGVuNjafolHlKAQRbGI3Uvg0vccnT6HBp9_xppHMAls5pLrq2kuZ3wAx0KqY10oHxtuxUNGe35cx-OxG_gisLYGmtlg==",
-		"mac": "2JbWHRhCLttqIDquitrOYDAukaX4jPVbg4hAL6U8w0E=",
+		"name": "MARIA",
+		"salt": "vtiqJ1rtjyoHYXxqn6Mqcw==",
+		"token": "gAAAAABnGWWZYDicCpUbfucmF9unwL15V-i4WL79YllQVdPT7lVvNv-qgkvbyXoL4ozma_kQ4yIdXhrq2Y3rLHE_ZPaf6WZ1Ng==",
 		"login": true
-	},
-	{
-		"name": "juan",
-		"salt": "KPMqsnByOPLV_Jtj7SUwCQ==",
-		"password": "gAAAAABnGVx3bjw73GgqxgYVQ8AUVEkgMkg6Si975YZ-K2KLEwN7xCZ2Q8BVyEtw6qozYpRGhvcARnHvP2AssLGC9k_gK86qAg==",
-		"mac": "9pQJEeI1b3mLyRNjHps_YThnpcp6Hwu5hKLHdU84u7E=",
-		"login": false
 	}
 ]
