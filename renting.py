@@ -210,12 +210,11 @@ class Renting:
                 # Creamos el nuevo registro de alquiler con solo los datos cifrados
                 new_rental = {
                     'encrypted_data': base64.urlsafe_b64encode(encrypted_rental_data).decode(),
-                    'login': False
                 }
                 
                 # Añadimos el nuevo registro de alquiler a la base de datos (lista en memoria)
                 data.append(new_rental)
-                with open('BBDD_rentals.json', 'w') as bd:
+                with open('BBDD_renting.json', 'w') as bd:
                     json.dump(data, bd, indent='\t')
 
                 # Guardamos la clave privada en un archivo separado
@@ -288,12 +287,12 @@ class Renting:
                 else:
                     print("No se encontraron reservas.")
                 
-                Renting.user_reservations(name)
+            Renting.user_reservations(name)
 
         except Exception as e:
             raise e
         
-    
+    @staticmethod
     def cancel_reservation(name):
         data= Renting.open_data()
         try:
