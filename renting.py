@@ -4,6 +4,11 @@ from datetime import datetime, timedelta
 from users import DataBase
 from encryptation import Encryption
 import base64
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
+
+
+
 
 class Renting:
     db = DataBase()
@@ -50,10 +55,11 @@ class Renting:
         data = Renting.open_data()
         actual_date = datetime.now()
         for car in data:
-            return_date = car['return_time']
-            return_date_obj = datetime.strptime(return_date, "%d/%m/%Y %H:%M:%S")
-            if return_date_obj <= actual_date:
-                car['rented'] = False
+            if 'return_time' in car:
+                return_date = car['return_time']
+                return_date_obj = datetime.strptime(return_date, "%d/%m/%Y %H:%M:%S")
+                if return_date_obj <= actual_date:
+                    car['rented'] = False
         
         Renting.load_data(data)
     
@@ -68,12 +74,21 @@ class Renting:
         print("|  Y Y  \  ___/|   |  \  |  / /\ ")
         print("|__|_|  /\___  >___|  /____/  \/ ")
         print("      \/     \/     \/           ")
+
+        print("    ______             ______             ______                ______                     ______         ")
+        print("   /|_||_\\`.__       /|_||_\\`.__       /|_||_\\`.__          /|_||_\\`.__               /|_||_\\`.__      ")
+        print("  (   _    _ _ \\    (   _    _ _ \\    (   _    _ _ \\       (   _    _ _ \\            (   _    _ _ \\   ")
+        print("  =`-(_)--(_)-'      =`-(_)--(_)-'      =`-(_)--(_)-'         =`-(_)--(_)-'              =`-(_)--(_)-'   ")
+        print("------------------>------------------->------------------>------------------------->------------------>")
+        print(" |    AUDI X5       |  TOYOTA YARIS   |    BMW 320D       |    MITSUBISHI MONTERO   |    SMART BRABUS   |")
+
         
         print("\n1 - RESERVAR COCHES")
         print("\n2 - MIS RESERVAS")
         print("\n3 - CERRAR SESIÓN")
         
         command = int(input("\nELIGE UNA OPCIÓN PARA CONTINUAR: "))
+        print(command)
         
         while not cond:
             Renting.loading()
@@ -88,6 +103,7 @@ class Renting:
                 cond = True
             else: 
                 command = input("\nLAS OPCIONES SON LAS QUE APARECEN EN EL MENU(1, 2 y 3).ELIGE UNA OPCIÓN PARA CONTINUAR: ")
+                Renting.menu(name)
     
     @staticmethod
     def reserve_menu(name):
@@ -106,21 +122,27 @@ class Renting:
             
             if command == 1:
                 cond = True
-                Renting.reserve(name, 'AUDI X5')
+                car='AUDI X5'
+                Renting.reserve(name, car)
             elif command == 2:
                 cond = True
-                Renting.reserve(name, 'TOYOTA YARIS')
+                car='TOYOTA YARIS'
+                Renting.reserve(name, car)
             elif command == 3:
                 cond = True
-                Renting.reserve(name, 'BMW 320D')
+                car='BMW 320D'
+                Renting.reserve(name, car)
             elif command == 4:
-                cond = True
-                Renting.reserve(name, 'MITSUBISHI MONTERO')
+                cond = True 
+                car='MITSUBISHI MONTERO'
+                Renting.reserve(name, car)
             elif command == 5:
                 cond = True
-                Renting.reserve(name, 'SMART BRABUS')
+                car='SMART BRABUS'
+                Renting.reserve(name, car)
             else: 
-                command = input("\nLAS OPCIONES SON LAS QUE APARECEN EN EL MENU(1, 2, 3  y 4).ELIGE UNA OPCIÓN PARA CONTINUAR: ")
+                command = input("\nLAS OPCIONES SON LAS QUE APARECEN EN EL MENU(1, 2, 3 , 4 y 5).ELIGE UNA OPCIÓN PARA CONTINUAR: ")
+                Renting.menu(name)
     
     @staticmethod
     def reserve(name, c):
@@ -129,14 +151,14 @@ class Renting:
         if data != None:    
             #Comprobamos que queden coches en el garage
             rented_cars = 0
-            for car in data:
-                if car['car'] == car and car['rented'] == True:
+            for rental in data:
+                if 'car' in rental and rental['car'] == car and rental['rented'] == True:
                     rented_cars += 1
             
             if rented_cars == 10:
                 print(f"LO SENTIMOS, NO QUEDAN {c} DISPONIBLES. PRUEBE CON OTRO COCHE.")
                 Renting.loading()
-                Renting.reserve(name)
+                Renting.reserve(name, car)
             #Si quedan coches añadimos la reserva a la base de datos
             else:
                 #Solicitamos la fecha de reserva y validamos que es el formato correcto
@@ -168,41 +190,47 @@ class Renting:
                 print('PROCESANDO SU RESERVA.')
                 #Antes de procesar la reserva creamos un numero de reserva único
                 reserve_number = str(len(data) + 1).zfill(10)
-                new_data = {
+                
+                rental_data = {
                     'name': name, 
                     'car': c, 
                     'rent_time': frent_time, 
                     'return_time': freturn_time, 
                     'rented': True, 
                     'reserve_number': reserve_number}
-                # Convertimos el diccionario a una cadena JSON
-                new_data_str = json.dumps(new_data)
                 
-                # Generamos una sal y una clave
-                salt = os.urandom(16)
-                key = Encryption.cifrar_key(new_data_str, salt)
+                # Generamos un par de claves RSA
+                private_key, public_key = Encryption.generar_claves_rsa()
+
                 
                 # Ciframos los datos de la reserva
-                encrypted_data = Encryption.cifrar_datos(new_data_str, key)
-                print(f"Cifrado simétrico con Fernet y clave de longitud {len(key)*8} bits.")
-                
-                # Generamos HMAC para los datos cifrados
-                mac = Encryption.generar_hmac(encrypted_data.decode(), key)
-                print(f"HMAC generado con algoritmo SHA-256 y clave de longitud {len(key)*8} bits.")
-                
-                # Añadimos los datos cifrados y la etiqueta HMAC a la base de datos
-                encrypted_entry = {
-                    'salt': base64.urlsafe_b64encode(salt).decode(),
-                    'encrypted_data': encrypted_data.decode(),
-                    'mac': mac.decode()
+                encrypted_rental_data = Encryption.cifrar_clave_rsa(public_key, json.dumps(rental_data).encode())
+
+
+                # Creamos el nuevo registro de alquiler con solo los datos cifrados
+                new_rental = {
+                    'encrypted_data': base64.urlsafe_b64encode(encrypted_rental_data).decode(),
+                    'login': False
                 }
+                
+                # Añadimos el nuevo registro de alquiler a la base de datos (lista en memoria)
+                data.append(new_rental)
+                with open('BBDD_rentals.json', 'w') as bd:
+                    json.dump(data, bd, indent='\t')
 
-                data.append(encrypted_entry)
-                Renting.load_data(data)
-                Renting.loading()
-                print(f"RESERVA REALIZADA CON ÉXITO. SU NUMERO DE RESERVA ES {reserve_number}")
-                Renting.menu(name)
+                # Guardamos la clave privada en un archivo separado
+                with open(f'{name}_rental_private_key.pem', 'wb') as key_file:
+                    key_file.write(private_key.private_bytes(
+                        encoding=serialization.Encoding.PEM,
+                        format=serialization.PrivateFormat.PKCS8,
+                        encryption_algorithm=serialization.NoEncryption()
+                    ))
+                
+                print('RESERVA REALIZADA CON EXITO.')
+                print(f"RESERVA DEL COCHE {car} DEL DIA {frent_time} HASTA EL DIA {freturn_time}")
+                print(f"numero de reserva: {reserve_number}")
 
+            
     @staticmethod
     def user_reservations(name):
         cond = False
@@ -227,102 +255,87 @@ class Renting:
             else:
                 command = input("\nLAS OPCIONES SON LAS QUE APARECEN EN EL MENU(1, 2 y 3).ELIGE UNA OPCIÓN PARA CONTINUAR: ")
 
-    @staticmethod
-    def my_reservations(name):
-        data = Renting.open_data()
-        if data != None:
-            print('MOSTRANDO SUS RESERVAS')
-            cont = 1
-            Renting.loading()
-            for entry in data:
-                # Decodificamos la sal y los datos cifrados
-                salt = base64.urlsafe_b64decode(entry['salt'])
-                encrypted_data = entry['encrypted_data'].encode()
-                mac = entry['mac'].encode()
-                
-                # Generamos la clave a partir de los datos cifrados y la sal almacenada
-                key = Encryption.cifrar_key(encrypted_data.decode(), salt)
-                
-                # Verificamos HMAC
-                if not Encryption.verificar_hmac(encrypted_data.decode(), key, mac):
-                    print("La integridad de la información del alquiler no se puede verificar.")
-                    continue
-                
-                # Desciframos los datos de la reserva
-                decrypted_data = Encryption.descifrar_datos(encrypted_data, key)
-                reserve = json.loads(decrypted_data)
-
-                if reserve['name'] == name and reserve['rented'] == True:
-                    print(f"RESERVA {cont}:")
-                    print(f"RESERVA DEL COCHE {user['car']} DEL DIA {user['rent_time']} HASTA EL DIA {user['return_time']}")
-                    print('\n')
-                    cont += 1
-            
-            if cont == 1:
-                print('NO HAY RESERVAS QUE MOSTRAR')
-        else:
-            print('NO HAY RESERVAS QUE MOSTRAR')
-        
-        Renting.user_reservations(name)
+    
     
     @staticmethod
-    def cancel_reservation(name):
-        data = Renting.open_data()
+    def my_reservations(name):
+        data= Renting.open_data()
+        try:
+            for rental in data:
+                encrypted_data = rental['encrypted_data'].encode()
+                
+                # Cargamos la clave privada RSA desde el archivo
+                with open(f'{name}_rental_private_key.pem', 'rb') as key_file:
+                    private_key = serialization.load_pem_private_key(
+                        key_file.read(),
+                        password=None,
+                        backend=default_backend()
+                    )
+                
+                # Cargamos la clave simétrica cifrada desde el archivo
+                with open(f'{name}_rental_encrypted_key.bin', 'rb') as key_file:
+                    encrypted_key = key_file.read()
+                
+                # Desciframos la clave simétrica utilizando la clave privada RSA
+                key = Encryption.descifrar_clave_rsa(private_key, encrypted_key)
+                
+                # Desciframos los datos de la reserva utilizando la clave simétrica
+                decrypted_rental_data = Encryption.descifrar_datos(encrypted_data, key)
+                rental_data = json.loads(decrypted_rental_data)
+                
+                if rental_data['name'] == name:
+                    print (rental_data)
+                else:
+                    print("No se encontraron reservas.")
+                
+                Renting.user_reservations(name)
+
+        except Exception as e:
+            raise e
         
-        if data is not None:
-            command = input("POR FAVOR, INTRODUZCA EL NUMERO DE LA RESERVA QUE DESEA ELIMINAR: ")
-            Renting.loading()
-            cond = False
-            
-            # Comprobamos que la reserva existe y eliminamos si es correcto
+    
+    def cancel_reservation(name):
+        data= Renting.open_data()
+        try:
             updated_data = []
-            for entry in data:
-                # Decodificamos la sal y los datos cifrados
-                salt = base64.urlsafe_b64decode(entry['salt'])
-                encrypted_data = entry['encrypted_data'].encode()
-                mac = entry['mac'].encode()
-                
-                # Generamos la clave a partir de los datos cifrados y la sal almacenada
-                key = Encryption.cifrar_key(encrypted_data.decode(), salt)
-                
-                # Verificamos HMAC
-                if not Encryption.verificar_hmac(encrypted_data.decode(), key, mac):
-                    print("La integridad de la información del alquiler no se puede verificar.")
-                    updated_data.append(entry)
-                    continue
-                
-                # Desciframos los datos de la reserva
-                decrypted_data = Encryption.descifrar_datos(encrypted_data, key)
-                reserve = json.loads(decrypted_data)
+            rental_found = False
+            reserve_number = input("POR FAVOR, INTRODUZCA EL NUMERO DE LA RESERVA QUE DESEA ELIMINAR: ")
 
-                if (reserve['name'] == name) and (reserve['rented'] == True) and (reserve['reserve_number'] == command):
-                    cond = True
-                    print('RESERVA ELIMINADA CORRECTAMENTE')
+            for rental in data:
+                encrypted_data = rental['encrypted_data'].encode()
+                
+                # Cargamos la clave privada RSA desde el archivo
+                with open(f'{name}_rental_private_key.pem', 'rb') as key_file:
+                    private_key = serialization.load_pem_private_key(
+                        key_file.read(),
+                        password=None,
+                        backend=default_backend()
+                    )
+                
+                # Cargamos la clave simétrica cifrada desde el archivo
+                with open(f'{name}_rental_encrypted_key.bin', 'rb') as key_file:
+                    encrypted_key = key_file.read()
+                
+                # Desciframos la clave simétrica utilizando la clave privada RSA
+                key = Encryption.descifrar_clave_rsa(private_key, encrypted_key)
+                
+                # Desciframos los datos de la reserva utilizando la clave simétrica
+                decrypted_rental_data = Encryption.descifrar_datos(encrypted_data, key)
+                rental_data = json.loads(decrypted_rental_data)
+                
+                if rental_data['name'] == name and rental_data['reserve_number'] == reserve_number:
+                    rental_found = True
                 else:
-                    updated_data.append(reserve)  # Añadir solo las reservas que no se eliminaron
+                    updated_data.append(rental)
 
-            # Guardamos los cambios si eliminamos alguna reserva
-            if cond:
-                Renting.load_data(updated_data)
-                Renting.loading()
-                Renting.menu(name)
+            if rental_found:
+                with open('BBDD_rentals.json', 'w') as bd:
+                    json.dump(updated_data, bd, indent='\t')
+                print("Reserva cancelada correctamente.")
             else:
-                # Si la reserva no existe le damos la oportunidad de intentarlo de nuevo o de salir
-                print('NUMERO DE RESERVA INCORRECTO. POR FAVOR COMPRUEBE SUS RESERVAS')
-                command = input('SI DESEA INTENTARLO DE NUEVO PULSE 1, SI DESEA SALIR PULSE CUALQUIER TECLA')
-                if command == '1':
-                    Renting.cancel_reservation(name)
-                else:
-                    Renting.user_reservations(name)
-        else:
-            print('NO HAY RESERVAS QUE ELIMINAR')
+                print("No se encontró la reserva.")
             Renting.user_reservations(name)
 
-
-        
-        
-        
-        
-                
-                
-        
+        except Exception as e:
+            raise e
+    
