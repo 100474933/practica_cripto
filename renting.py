@@ -229,6 +229,8 @@ class Renting:
                 print(f"RESERVA DEL COCHE {car} DEL DIA {frent_time} HASTA EL DIA {freturn_time}")
                 print(f"numero de reserva: {reserve_number}")
 
+                Renting.user_reservations(name)
+
             
     @staticmethod
     def user_reservations(name):
@@ -271,15 +273,7 @@ class Renting:
                         backend=default_backend()
                     )
                 
-                # Cargamos la clave simétrica cifrada desde el archivo
-                with open(f'{name}_rental_encrypted_key.bin', 'rb') as key_file:
-                    encrypted_key = key_file.read()
-                
-                # Desciframos la clave simétrica utilizando la clave privada RSA
-                key = Encryption.descifrar_clave_rsa(private_key, encrypted_key)
-                
-                # Desciframos los datos de la reserva utilizando la clave simétrica
-                decrypted_rental_data = Encryption.descifrar_datos(encrypted_data, key)
+                decrypted_rental_data = Encryption.descifrar_datos(encrypted_data, private_key)
                 rental_data = json.loads(decrypted_rental_data)
                 
                 if rental_data['name'] == name:
@@ -328,13 +322,14 @@ class Renting:
                     updated_data.append(rental)
 
             if rental_found:
-                with open('BBDD_rentals.json', 'w') as bd:
+                with open('BBDD_renting.json', 'w') as bd:
                     json.dump(updated_data, bd, indent='\t')
                 print("Reserva cancelada correctamente.")
             else:
                 print("No se encontró la reserva.")
-            Renting.user_reservations(name)
 
         except Exception as e:
             raise e
+    
+        Renting.user_reservations(name)
     
