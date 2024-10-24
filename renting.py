@@ -9,6 +9,7 @@ from cryptography.hazmat.backends import default_backend
 
 
 
+
 class Renting:
     db = DataBase()
     
@@ -121,25 +122,30 @@ class Renting:
             
             if command == 1:
                 cond = True
-                Renting.reserve(name, 'AUDI X5')
+                car='AUDI X5'
+                Renting.reserve(name, car)
             elif command == 2:
                 cond = True
-                Renting.reserve(name, 'TOYOTA YARIS')
+                car='TOYOTA YARIS'
+                Renting.reserve(name, car)
             elif command == 3:
                 cond = True
-                Renting.reserve(name, 'BMW 320D')
+                car='BMW 320D'
+                Renting.reserve(name, car)
             elif command == 4:
-                cond = True
-                Renting.reserve(name, 'MITSUBISHI MONTERO')
+                cond = True 
+                car='MITSUBISHI MONTERO'
+                Renting.reserve(name, car)
             elif command == 5:
                 cond = True
-                Renting.reserve(name, 'SMART BRABUS')
+                car='SMART BRABUS'
+                Renting.reserve(name, car)
             else: 
-                command = input("\nLAS OPCIONES SON LAS QUE APARECEN EN EL MENU(1, 2, 3  y 4).ELIGE UNA OPCIÓN PARA CONTINUAR: ")
+                command = input("\nLAS OPCIONES SON LAS QUE APARECEN EN EL MENU(1, 2, 3 , 4 y 5).ELIGE UNA OPCIÓN PARA CONTINUAR: ")
                 Renting.menu(name)
     
     @staticmethod
-    def reserve(self, name, car_model):
+    def reserve(name, car):
         data = Renting.open_data()
         #Comprobamos que el fichero data no este vacio
         if data != None:    
@@ -152,7 +158,7 @@ class Renting:
             if rented_cars == 10:
                 print(f"LO SENTIMOS, NO QUEDAN {car} DISPONIBLES. PRUEBE CON OTRO COCHE.")
                 Renting.loading()
-                Renting.reserve(name, car_model)
+                Renting.reserve(name, car)
             #Si quedan coches añadimos la reserva a la base de datos
             else:
                 #Solicitamos la fecha de reserva y validamos que es el formato correcto
@@ -187,7 +193,7 @@ class Renting:
                 
                 rental_data = {
                     'name': name, 
-                    'car': car_model, 
+                    'car': car, 
                     'rent_time': frent_time, 
                     'return_time': freturn_time, 
                     'rented': True, 
@@ -196,22 +202,21 @@ class Renting:
                 # Generamos un par de claves RSA
                 private_key, public_key = Encryption.generar_claves_rsa()
 
-                # Generamos una clave simétrica
-                key = Encryption.generar_clave()
-
+                
                 # Ciframos los datos de la reserva
-                encrypted_rental_data = Encryption.cifrar_datos(rental_data, key)
+                encrypted_rental_data = Encryption.cifrar_clave_rsa(public_key, json.dumps(rental_data).encode())
+
 
                 # Creamos el nuevo registro de alquiler con solo los datos cifrados
                 new_rental = {
-                    'encrypted_data': encrypted_rental_data.decode(),
+                    'encrypted_data': base64.urlsafe_b64encode(encrypted_rental_data).decode(),
                     'login': False
                 }
                 
                 # Añadimos el nuevo registro de alquiler a la base de datos (lista en memoria)
-                self.data.append(new_rental)
+                data.append(new_rental)
                 with open('BBDD_rentals.json', 'w') as bd:
-                    json.dump(self.data, bd, indent='\t')
+                    json.dump(data, bd, indent='\t')
 
                 # Guardamos la clave privada en un archivo separado
                 with open(f'{name}_rental_private_key.pem', 'wb') as key_file:
@@ -220,13 +225,9 @@ class Renting:
                         format=serialization.PrivateFormat.PKCS8,
                         encryption_algorithm=serialization.NoEncryption()
                     ))
-
-                # Guardamos la clave simétrica cifrada en un archivo separado
-                with open(f'{name}_rental_encrypted_key.bin', 'wb') as key_file:
-                    key_file.write(Encryption.cifrar_clave_rsa(public_key, key))
                 
                 print('RESERVA REALIZADA CON EXITO.')
-                print(f"RESERVA DEL COCHE {car_model} DEL DIA {frent_time} HASTA EL DIA {freturn_time}")
+                print(f"RESERVA DEL COCHE {car} DEL DIA {frent_time} HASTA EL DIA {freturn_time}")
                 print(f"numero de reserva: {reserve_number}")
 
             
@@ -258,8 +259,9 @@ class Renting:
     
     @staticmethod
     def my_reservations(name):
+        data= Renting.open_data()
         try:
-            for rental in self.data:
+            for rental in data:
                 encrypted_data = rental['encrypted_data'].encode()
                 
                 # Cargamos la clave privada RSA desde el archivo
@@ -282,7 +284,7 @@ class Renting:
                 rental_data = json.loads(decrypted_rental_data)
                 
                 if rental_data['name'] == name:
-                    return rental_data
+                    print (rental_data)
                 else:
                     print("No se encontraron reservas.")
                 
@@ -292,13 +294,14 @@ class Renting:
             raise e
         
     
-    def cancel_reservation(self, name):
+    def cancel_reservation(name):
+        data= Renting.open_data()
         try:
             updated_data = []
             rental_found = False
             reserve_number = input("POR FAVOR, INTRODUZCA EL NUMERO DE LA RESERVA QUE DESEA ELIMINAR: ")
 
-            for rental in self.data:
+            for rental in data:
                 encrypted_data = rental['encrypted_data'].encode()
                 
                 # Cargamos la clave privada RSA desde el archivo
