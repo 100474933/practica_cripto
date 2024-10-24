@@ -90,6 +90,14 @@ class DataBase:
                     encryption_algorithm=serialization.NoEncryption()
                 ))
 
+            # Guardamos la clave pública en un archivo separado
+            with open(f'{name}_public_key.pem', 'wb') as key_file:
+                key_file.write(public_key.public_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PublicFormat.SubjectPublicKeyInfo
+                ))
+
+
             # Guardamos la clave simétrica cifrada en un archivo separado
             with open(f'{name}_encrypted_key.bin', 'wb') as key_file:
                 key_file.write(Encryption.cifrar_clave_rsa(public_key, key))

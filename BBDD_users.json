@@ -4,5 +4,11 @@
 		"salt": "nPxxtqf9BWewFMezVwdTPw==",
 		"token": "gAAAAABnGhK8v1HZxeyU9Cmzb35eI4PHRZQy35A4T4vdzZQoPG2WYVuS4ygrnFxGjTdqBZ5FvIuYHFJmk5V-ScscqCZ-ncdgfQ==",
 		"login": true
+	},
+	{
+		"name": "Juan",
+		"salt": "JiUQS7sv6ic74mlyWznwhA==",
+		"token": "gAAAAABnGlIoFPyRHGvC_KKLh6C5pJOStRMrHouR0ljspz0YI7ia9w48ygcORfsEuBtIdRv9J2-NM2yyeBCW2BXNOVHqmImGLQ==",
+		"login": true
 	}
 ]

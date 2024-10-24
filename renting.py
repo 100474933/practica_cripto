@@ -199,9 +199,12 @@ class Renting:
                     'rented': True, 
                     'reserve_number': reserve_number}
                 
-                # Generamos un par de claves RSA
-                private_key, public_key = Encryption.generar_claves_rsa()
-
+                # Cargamos la clave pública RSA desde el archivo
+                with open(f'{name}_public_key.pem', 'rb') as key_file:
+                    public_key = serialization.load_pem_public_key(
+                    key_file.read(),
+                    backend=default_backend()
+                )
                 
                 # Ciframos los datos de la reserva
                 encrypted_rental_data = Encryption.cifrar_clave_rsa(public_key, json.dumps(rental_data).encode())
@@ -217,13 +220,6 @@ class Renting:
                 with open('BBDD_renting.json', 'w') as bd:
                     json.dump(data, bd, indent='\t')
 
-                # Guardamos la clave privada en un archivo separado
-                with open(f'{name}_rental_private_key.pem', 'wb') as key_file:
-                    key_file.write(private_key.private_bytes(
-                        encoding=serialization.Encoding.PEM,
-                        format=serialization.PrivateFormat.PKCS8,
-                        encryption_algorithm=serialization.NoEncryption()
-                    ))
                 
                 print('RESERVA REALIZADA CON EXITO.')
                 print(f"RESERVA DEL COCHE {car} DEL DIA {frent_time} HASTA EL DIA {freturn_time}")
@@ -266,7 +262,7 @@ class Renting:
                 encrypted_data = rental['encrypted_data'].encode()
                 
                 # Cargamos la clave privada RSA desde el archivo
-                with open(f'{name}_rental_private_key.pem', 'rb') as key_file:
+                with open(f'{name}_private_key.pem', 'rb') as key_file:
                     private_key = serialization.load_pem_private_key(
                         key_file.read(),
                         password=None,
@@ -298,7 +294,7 @@ class Renting:
                 encrypted_data = rental['encrypted_data'].encode()
                 
                 # Cargamos la clave privada RSA desde el archivo
-                with open(f'{name}_rental_private_key.pem', 'rb') as key_file:
+                with open(f'{name}_private_key.pem', 'rb') as key_file:
                     private_key = serialization.load_pem_private_key(
                         key_file.read(),
                         password=None,
