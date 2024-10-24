@@ -1,7 +1,9 @@
 import json
 import os
-from encryptation import Encryption
 import base64
+from encryptation import Encryption
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
 
 class DataBase:
     def __init__(self):
@@ -18,7 +20,7 @@ class DataBase:
                 print("El archivo de datos está corrupto. Iniciando una base de datos vacía.")
             except Exception as e:
                 print(f"Error al leer el archivo: {e}")
-    
+
     def create_account_name(self):
         try:
             name = input("\nINTRODUCE TU NOMBRE: ")
@@ -35,28 +37,37 @@ class DataBase:
             raise e
 
     def create_account_password(self, name):
-        #Ahora hacemos lo mismo para la contraseña
-        try:    
+        try:
             password = input("\nINTRODUCE TU CONTRASEÑA: ")
+            # Verificamos si el nombre de usuario es único
+            for user in self.data:
+                if user['name'] == name:
+                    raise ValueError(f"El nombre de usuario {name} ya existe, por favor introduce otro.")
+            
+            print("Nombre de usuario válido.")
+            
             # Verificamos longitud de la contraseña 
             if len(password) < 8:
-                raise ValueError("LA CONTRASEÑA DEBE CONTENER AL MENOS 8 CARACTERES.")
-                
+                raise ValueError("La contraseña debe contener al menos 8 caracteres.")
+            
             # Verificamos contenido de la contraseña
             mayus = any(char.isupper() for char in password)
             minus = any(char.islower() for char in password)
             num = any(char.isdigit() for char in password)
             if not (mayus and minus and num):
-                raise ValueError("LA CONTRASEÑA DEBE CONTENER AL MENOS UNA MAYÚSCULA, UNA MINÚSCULA Y UN NÚMERO.")
-                
-            print('CONTRASEÑA VÁLIDA.')
+                raise ValueError("La contraseña debe contener al menos una mayúscula, una minúscula y un número.")
             
-            # Generamos la sal y derivamos la clave simétrica a partir de la contraseña
+            # Generamos una sal y derivamos la clave simétrica a partir de la contraseña
             salt = os.urandom(16)  # Genera una sal aleatoria de 16 bytes
-            key = Encryption.cifrar_key(password, salt)  # Deriva la clave simétrica usando la contraseña y la sal
             
-            # Ciframos la contraseña con la clave derivada
-            token = Encryption.cifrar_datos(password, key)  # Cifra la contraseña
+            # Generamos un par de claves RSA
+            private_key, public_key = Encryption.generar_claves_rsa()
+
+            # Derivamos la clave simétrica a partir de la contraseña y la sal
+            key = Encryption.cifrar_key(password, salt)
+            
+            # Ciframos la contraseña utilizando clave simétrica
+            token = Encryption.cifrar_datos(password, key)
             
             # Creamos el nuevo usuario con solo 'salt' y 'token'
             new_user = {
@@ -71,6 +82,18 @@ class DataBase:
             with open('BBDD_users.json', 'w') as bd:
                 json.dump(self.data, bd, indent='\t')
 
+            # Guardamos la clave privada en un archivo separado
+            with open(f'{name}_private_key.pem', 'wb') as key_file:
+                key_file.write(private_key.private_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PrivateFormat.PKCS8,
+                    encryption_algorithm=serialization.NoEncryption()
+                ))
+
+            # Guardamos la clave simétrica cifrada en un archivo separado
+            with open(f'{name}_encrypted_key.bin', 'wb') as key_file:
+                key_file.write(Encryption.cifrar_clave_rsa(public_key, key))
+
         except Exception as e:
             raise e
     
@@ -81,8 +104,20 @@ class DataBase:
                     salt = base64.urlsafe_b64decode(user['salt'])
                     token = user['token'].encode()
                     
-                    # Generamos la clave a partir de la contraseña ingresada y la sal almacenada
-                    key = Encryption.cifrar_key(password, salt)
+                    # Cargamos la clave privada RSA desde el archivo
+                    with open(f'{name}_private_key.pem', 'rb') as key_file:
+                        private_key = serialization.load_pem_private_key(
+                            key_file.read(),
+                            password=None,
+                            backend=default_backend()
+                        )
+                    
+                    # Cargamos la clave simétrica cifrada desde el archivo
+                    with open(f'{name}_encrypted_key.bin', 'rb') as key_file:
+                        encrypted_key = key_file.read()
+                    
+                    # Desciframos la clave simétrica utilizando la clave privada RSA
+                    key = Encryption.descifrar_clave_rsa(private_key, encrypted_key)
                     
                     # Verificamos y desciframos el token
                     decrypted_password = Encryption.descifrar_datos(token, key)
@@ -97,21 +132,16 @@ class DataBase:
         except Exception as e:
             raise e
 
-            raise ValueError("EL NOMBRE Y/O CONTRASEÑA NO SON CORRECTOS.")
+    def logout(self, name):
+        try:
+            for user in self.data:
+                if user['login'] == True and user['name'] == name:
+                    user['login'] = False 
+                    with open('BBDD_users.json', 'w') as bd:
+                        json.dump(self.data, bd, indent='\t')
+                    print(f"El usuario {name} cerró sesión exitosamente.")
+                    return True
+        
+            raise ValueError("No se pudo cerrar sesión correctamente")
         except Exception as e:
             raise e
-
-    def logout(self, name):
-        #Comprobamos que el usuario esta loggeado para salir de la app.
-        for user in self.data:
-            if (user['login'] == True) and (user['name'] == name):
-                user['login'] = False 
-                with open('BBDD_users.json', 'w') as bd:
-                    json.dump(self.data, bd, indent = '\t')
-                print(f"EL USUARIO {name} CERRO SESIÓN EXITOSAMENTE.")
-                return True
-        
-        raise ValueError("NO SE PUDO CERRAR SESIÓN CORRECTAMENTE")
-    
-
-
