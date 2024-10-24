@@ -10,6 +10,7 @@ from cryptography.hazmat.primitives import serialization
 
 class Encryption:
     @staticmethod
+<<<<<<< Updated upstream
     def generar_claves_rsa():
         # Genera un par de claves RSA
         private_key = rsa.generate_private_key(
@@ -48,6 +49,9 @@ class Encryption:
 
     @staticmethod
     def cifrar_key(password, salt):
+=======
+    def token(password, salt):
+>>>>>>> Stashed changes
         # Crea un objeto PBKDF2HMAC con el algoritmo SHA-256, longitud de clave de 32 bytes, sal y 100000 iteraciones
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),

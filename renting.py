@@ -279,21 +279,24 @@ class Renting:
                 # Desciframos la clave simétrica utilizando la clave privada RSA
                 key = Encryption.descifrar_clave_rsa(private_key, encrypted_key)
                 
-                # Desciframos los datos de la reserva utilizando la clave simétrica
-                decrypted_rental_data = Encryption.descifrar_datos(encrypted_data, key)
-                rental_data = json.loads(decrypted_rental_data)
-                
-                if rental_data['name'] == name:
-                    print (rental_data)
-                else:
-                    print("No se encontraron reservas.")
-                
-                Renting.user_reservations(name)
+                # Desciframos los datos de la reserva
+                decrypted_data = Encryption.descifrar_datos(encrypted_data, key)
+                reserve = json.loads(decrypted_data)
 
-        except Exception as e:
-            raise e
+                if reserve['name'] == name and reserve['rented'] == True:
+                    print(f"RESERVA {cont}:")
+                    print(f"RESERVA DEL COCHE {user['car']} DEL DIA {user['rent_time']} HASTA EL DIA {user['return_time']}")
+                    print('\n')
+                    cont += 1
+            
+            if cont == 1:
+                print('NO HAY RESERVAS QUE MOSTRAR')
+        else:
+            print('NO HAY RESERVAS QUE MOSTRAR')
         
+        Renting.user_reservations(name)
     
+    @staticmethod
     def cancel_reservation(name):
         data= Renting.open_data()
         try:
