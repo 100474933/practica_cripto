@@ -57,7 +57,6 @@ class DataBase:
             if not (mayus and minus and num):
                 raise ValueError("La contraseña debe contener al menos una mayúscula, una minúscula y un número.")
             
-<<<<<<< Updated upstream
             # Generamos una sal y derivamos la clave simétrica a partir de la contraseña
             salt = os.urandom(16)  # Genera una sal aleatoria de 16 bytes
             
@@ -66,11 +65,6 @@ class DataBase:
 
             # Derivamos la clave simétrica a partir de la contraseña y la sal
             key = Encryption.cifrar_key(password, salt)
-=======
-            # Generamos una sal y una clave
-            salt = os.urandom(16)
-            token = Encryption.token(password, salt)
->>>>>>> Stashed changes
             
             # Ciframos la contraseña utilizando clave simétrica
             token = Encryption.cifrar_datos(password, key)

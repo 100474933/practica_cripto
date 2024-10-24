@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from users import DataBase
 from encryptation import Encryption
 import base64
@@ -145,7 +145,7 @@ class Renting:
                 Renting.menu(name)
     
     @staticmethod
-    def reserve(name, c):
+    def reserve(name, car):
         data = Renting.open_data()
         #Comprobamos que el fichero data no este vacio
         if data != None:    
@@ -156,7 +156,7 @@ class Renting:
                     rented_cars += 1
             
             if rented_cars == 10:
-                print(f"LO SENTIMOS, NO QUEDAN {c} DISPONIBLES. PRUEBE CON OTRO COCHE.")
+                print(f"LO SENTIMOS, NO QUEDAN {car} DISPONIBLES. PRUEBE CON OTRO COCHE.")
                 Renting.loading()
                 Renting.reserve(name, car)
             #Si quedan coches añadimos la reserva a la base de datos
@@ -193,7 +193,7 @@ class Renting:
                 
                 rental_data = {
                     'name': name, 
-                    'car': c, 
+                    'car': car, 
                     'rent_time': frent_time, 
                     'return_time': freturn_time, 
                     'rented': True, 
@@ -279,24 +279,21 @@ class Renting:
                 # Desciframos la clave simétrica utilizando la clave privada RSA
                 key = Encryption.descifrar_clave_rsa(private_key, encrypted_key)
                 
-                # Desciframos los datos de la reserva
-                decrypted_data = Encryption.descifrar_datos(encrypted_data, key)
-                reserve = json.loads(decrypted_data)
+                # Desciframos los datos de la reserva utilizando la clave simétrica
+                decrypted_rental_data = Encryption.descifrar_datos(encrypted_data, key)
+                rental_data = json.loads(decrypted_rental_data)
+                
+                if rental_data['name'] == name:
+                    print (rental_data)
+                else:
+                    print("No se encontraron reservas.")
+                
+                Renting.user_reservations(name)
 
-                if reserve['name'] == name and reserve['rented'] == True:
-                    print(f"RESERVA {cont}:")
-                    print(f"RESERVA DEL COCHE {user['car']} DEL DIA {user['rent_time']} HASTA EL DIA {user['return_time']}")
-                    print('\n')
-                    cont += 1
-            
-            if cont == 1:
-                print('NO HAY RESERVAS QUE MOSTRAR')
-        else:
-            print('NO HAY RESERVAS QUE MOSTRAR')
+        except Exception as e:
+            raise e
         
-        Renting.user_reservations(name)
     
-    @staticmethod
     def cancel_reservation(name):
         data= Renting.open_data()
         try:
