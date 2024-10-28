@@ -2,72 +2,96 @@ import json
 import os
 import base64
 from encryptation import Encryption
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.backends import default_backend
 
-class DataBase:
-    def __init__(self):
-        self.data = []  # Inicializamos la base de datos como una lista vacía por defecto.
-
-        # Verificamos si el archivo existe
-        if os.path.exists('BBDD_users.json'):
+class Users:
+    @staticmethod
+    def create_BBDD():
+        bbdd_path = os.path.abspath('SERVER')
+        bbdd_path += '/BBDD'
+        os.makedirs(bbdd_path, exist_ok=True)
+    
+    @staticmethod
+    def load_data():
+        db_file_path = os.path.abspath('SERVER')
+        db_file_path += '/BBDD/BBDD_users.json'
+        if os.path.exists(db_file_path):
             try:
-                with open('BBDD_users.json', 'r') as data:
+                # Obtenemos las rutas de los ficheros que guardan la clave privada y la encriptación de la clave simetrica
+                private_key_path = os.path.abspath('SERVER')
+                simetric_key_path = private_key_path
+                private_key_path += '/KEYS/server_private_key.pem' 
+                simetric_key_path += '/KEYS/users_simetric_encrypted_key.bin'
+                
+                # Desencriptamos la base de datos
+                Encryption.descifrar_users_json(db_file_path, private_key_path, simetric_key_path)
+                
+                # Una vez desencriptado la base de datos entramos y leemos los datos
+                with open(db_file_path, 'r') as data:
                     content = data.read().strip()  # Leemos el archivo y eliminamos espacios en blanco
                     if content:  # Solo intentamos cargar el JSON si hay contenido
-                        self.data = json.loads(content)
+                        return json.loads(content)
             except json.JSONDecodeError:
                 print("El archivo de datos está corrupto. Iniciando una base de datos vacía.")
             except Exception as e:
                 print(f"Error al leer el archivo: {e}")
+        return []
 
-    def create_account_name(self):
+    @staticmethod
+    def save_data(data):
+        # Obtenemos la ruta donde guardamos los datos
+        db_file_path = os.path.abspath('SERVER')
+        db_file_path += '/BBDD/BBDD_users.json'
+        
         try:
-            name = input("\nINTRODUCE TU NOMBRE: ")
-            # Verificamos si el nombre de usuario es único
-            for user in self.data:
-                if user['name'] == name:
-                    raise ValueError(f"EL NOMBRE DE USUARIO {name} YA EXISTE, PORFAVOR INTRODUZCA OTRO")
-                
-            print("NOMBRE DE USUARIO VÁLIDO.")
-                
-            return name
+            # Abrimos el fichero de datos y los guardamos
+            with open(db_file_path, 'w') as bbdd_file:
+                data = json.dump(data, bbdd_file, indent='\t')
             
+            # Ahora procedemos a encriptar el fichero, para ello necesitaremos la clave publica del SERVER
+            public_key_path = os.path.abspath('SERVER')
+            public_key_path += '/KEYS/server_public_key.pem'
+            
+            # Encriptamos el fichero
+            Encryption.cifrar_users_json(db_file_path, public_key_path)
+        
         except Exception as e:
-            raise e
-
-    def create_account_password(self, name):
+            print(f'{e}')
+            
+    @staticmethod
+    def create_account():
         try:
-            password = input("\nINTRODUCE TU CONTRASEÑA: ")
-            # Verificamos si el nombre de usuario es único
-            for user in self.data:
-                if user['name'] == name:
-                    raise ValueError(f"El nombre de usuario {name} ya existe, por favor introduce otro.")
+            # Cargamos los datos de la base de datos (si no existe genera una lista vacía)
+            data = Users.load_data()
             
-            print("Nombre de usuario válido.")
+            # Pedimos el nombre de usuario y confirmamos que sea único
+            while True:
+                name = input("\nINTRODUCE TU NOMBRE: ")
+                if any(user['name'] == name for user in data):
+                    print(f"El nombre de usuario '{name}' ya existe. Por favor, introduce otro.")
+                else:
+                    print("NOMBRE DE USUARIO VÁLIDO.")
+                    break  # Salimos del bucle si el nombre es válido
             
-            # Verificamos longitud de la contraseña 
-            if len(password) < 8:
-                raise ValueError("La contraseña debe contener al menos 8 caracteres.")
-            
-            # Verificamos contenido de la contraseña
-            mayus = any(char.isupper() for char in password)
-            minus = any(char.islower() for char in password)
-            num = any(char.isdigit() for char in password)
-            if not (mayus and minus and num):
-                raise ValueError("La contraseña debe contener al menos una mayúscula, una minúscula y un número.")
+            # Pedimos la contraseña y confirmamos que cumpla con los estándares mínimos
+            while True:
+                password = input("\nINTRODUCE TU CONTRASEÑA: ")
+                if len(password) < 8:
+                    print("La contraseña debe contener al menos 8 caracteres.")
+                elif not any(char.isupper() for char in password):
+                    print("La contraseña debe contener al menos una mayúscula.")
+                elif not any(char.islower() for char in password):
+                    print("La contraseña debe contener al menos una minúscula.")
+                elif not any(char.isdigit() for char in password):
+                    print("La contraseña debe contener al menos un número.")
+                else:
+                    print("Contraseña válida.")
+                    break  # Salimos del bucle si la contraseña es válida
             
             # Generamos una sal y derivamos la clave simétrica a partir de la contraseña
             salt = os.urandom(16)  # Genera una sal aleatoria de 16 bytes
-            
-            # Generamos un par de claves RSA
-            private_key, public_key = Encryption.generar_claves_rsa()
 
             # Derivamos la clave simétrica a partir de la contraseña y la sal
-            key = Encryption.cifrar_key(password, salt)
-            
-            # Ciframos la contraseña utilizando clave simétrica
-            token = Encryption.cifrar_datos(password, key)
+            token = Encryption.generar_token(password, salt)
             
             # Creamos el nuevo usuario con solo 'salt' y 'token'
             new_user = {
@@ -78,78 +102,50 @@ class DataBase:
             }
             
             # Añadimos el nuevo usuario a la base de datos (lista en memoria)
-            self.data.append(new_user)
-            with open('BBDD_users.json', 'w') as bd:
-                json.dump(self.data, bd, indent='\t')
-
-            # Guardamos la clave privada en un archivo separado
-            with open(f'{name}_private_key.pem', 'wb') as key_file:
-                key_file.write(private_key.private_bytes(
-                    encoding=serialization.Encoding.PEM,
-                    format=serialization.PrivateFormat.PKCS8,
-                    encryption_algorithm=serialization.NoEncryption()
-                ))
-
-            # Guardamos la clave pública en un archivo separado
-            with open(f'{name}_public_key.pem', 'wb') as key_file:
-                key_file.write(public_key.public_bytes(
-                    encoding=serialization.Encoding.PEM,
-                    format=serialization.PublicFormat.SubjectPublicKeyInfo
-                ))
-
-
-            # Guardamos la clave simétrica cifrada en un archivo separado
-            with open(f'{name}_encrypted_key.bin', 'wb') as key_file:
-                key_file.write(Encryption.cifrar_clave_rsa(public_key, key))
+            data.append(new_user)
+            Users.save_data(data)
 
         except Exception as e:
             raise e
-    
-    def login(self, name, password):
+            
+    @staticmethod
+    def login(name, password):
         try:
-            for user in self.data:
-                if user['name'] == name:
+            # Cargamos la base de datos desencriptada
+            data = Users.load_data()
+            
+            for user in data:
+                if user['name'] == name: # Comprobamos si el nombre de usuario existe en la BBDD
+                    # Desencriptamos el salt y pasamos el token a bytes
                     salt = base64.urlsafe_b64decode(user['salt'])
                     token = user['token'].encode()
                     
-                    # Cargamos la clave privada RSA desde el archivo
-                    with open(f'{name}_private_key.pem', 'rb') as key_file:
-                        private_key = serialization.load_pem_private_key(
-                            key_file.read(),
-                            password=None,
-                            backend=default_backend()
-                        )
+                    # Generamos un nuevo token con el mismo salt y la password que nos ha pasado el user
+                    new_token = Encryption.generar_token(password, salt)
                     
-                    # Cargamos la clave simétrica cifrada desde el archivo
-                    with open(f'{name}_encrypted_key.bin', 'rb') as key_file:
-                        encrypted_key = key_file.read()
-                    
-                    # Desciframos la clave simétrica utilizando la clave privada RSA
-                    key = Encryption.descifrar_clave_rsa(private_key, encrypted_key)
-                    
-                    # Verificamos y desciframos el token
-                    decrypted_password = Encryption.descifrar_datos(token, key)
-                    
-                    if decrypted_password == password and user['login'] == False:
-                        user['login'] = True 
-                        with open('BBDD_users.json', 'w') as bd:
-                            json.dump(self.data, bd, indent='\t')
-                        return True
-
-            raise ValueError("El nombre y/o contraseña no son correctos.")
+                    # Si los token coinciden, significa que la contraseña es correcta
+                    if token == new_token:
+                        print('La contraseña es correcta')
+                        user['login'] = True
+                        
+                        # Guardamos los datos en la base de datos y la encriptamos
+                        Users.save_data(data)
+                        break
+                    else:
+                        print('La contraseña no es correcta intentelo de nuevo')
+            
         except Exception as e:
-            raise e
+            print(f'No se pudo iniciar sesión correctamente: {e}')
 
-    def logout(self, name):
+    @staticmethod
+    def logout(name):
         try:
-            for user in self.data:
-                if user['login'] == True and user['name'] == name:
+            data = Users.load_data()
+            for user in data:
+                if 'login' in user and 'name' in user and user['login'] == True and user['name'] == name:
                     user['login'] = False 
-                    with open('BBDD_users.json', 'w') as bd:
-                        json.dump(self.data, bd, indent='\t')
+                    Users.save_data(data)
                     print(f"El usuario {name} cerró sesión exitosamente.")
-                    return True
-        
-            raise ValueError("No se pudo cerrar sesión correctamente")
+                    
         except Exception as e:
-            raise e
+            print(f'No se pudo cerrar sesión correctamente: {e}')
