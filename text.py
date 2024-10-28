@@ -104,7 +104,6 @@ class Text:
             Text.db.login(nombre, password)
         except ValueError as e:
             print(e)
-            Text.IniciarSesion()
         
 
         # Pantalla de carga
