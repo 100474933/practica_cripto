@@ -282,6 +282,43 @@ class Renting:
         except Exception as e:
             raise e
         
+    
+    @staticmethod
+    def my_reservations(name):
+        data = Renting.open_data()
+        
+        try:
+            for rental in data:
+                encrypted_data = rental['encrypted_data'].encode()
+
+                # Cargar clave privada RSA desde archivo
+                with open(f'{name}_private_key.pem', 'rb') as key_file:
+                    private_key = serialization.load_pem_private_key(
+                        key_file.read(),
+                        password=None,
+                        backend=default_backend()
+                    )
+                
+                # Descifrar clave simétrica usando RSA
+                encrypted_key = rental['encrypted_key']  # Esta clave debe estar en la estructura del JSON.
+                sym_key = Encryption.descifrar_clave_rsa(private_key, encrypted_key)
+
+                # Descifrar los datos usando la clave simétrica descifrada
+                fernet = Fernet(sym_key)
+                decrypted_rental_data = fernet.decrypt(encrypted_data).decode()
+
+                rental_data = json.loads(decrypted_rental_data)
+                
+                if rental_data['name'] == name:
+                    print(rental_data)
+                else:
+                    print("No se encontraron reservas.")
+                
+                Renting.user_reservations(name)
+
+        except Exception as e:
+            raise e
+        
     @staticmethod
     def cancel_reservation(name):
         data= Renting.open_data()
