@@ -87,10 +87,10 @@ class Users:
                     print("Contraseña válida.")
                     break  # Salimos del bucle si la contraseña es válida
             
-            # Generamos una sal y derivamos la clave simétrica a partir de la contraseña
+            # Generamos una salt
             salt = os.urandom(16)  # Genera una sal aleatoria de 16 bytes
 
-            # Derivamos la clave simétrica a partir de la contraseña y la sal
+            # Generamos un token con la contraseña y el salt
             token = Encryption.generar_token(password, salt)
             
             # Creamos el nuevo usuario con solo 'salt' y 'token'

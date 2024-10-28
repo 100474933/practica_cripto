@@ -191,7 +191,10 @@ class Renting:
                         try: 
                             rent_time_str = input('\nIntroduce una fecha de reserva en formato DD/MM/AAAA: ')
                             rent_time = datetime.strptime(rent_time_str, "%d/%m/%Y")
-                            break 
+                            if rent_time <= datetime.now():
+                                print('\nLa fecha debe de ser mayor que la actual, inténtelo de nuevo.')
+                            else:
+                                break 
                         except ValueError:
                             print('\nFormato de fecha inválido, intentelo de nuevo.')
                     
