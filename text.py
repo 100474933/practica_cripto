@@ -1,9 +1,9 @@
 import os
-from users import DataBase
 from renting import Renting
+from users import Users
+from encryptation import Encryption
 
 class Text:
-    db = DataBase()
 
     @staticmethod
     def loading():
@@ -11,6 +11,17 @@ class Text:
     
     @staticmethod
     def welcoming():
+        
+        # Creando las claves del SERVER, si no las tiene ya
+        path = os.path.abspath('SERVER')
+        private_key_path = path + '/KEYS/server_private_key.pem'
+        public_key_path = path + '/KEYS/server_public_key.pem'
+        if not os.path.exists(private_key_path) and not os.path.exists(public_key_path):
+            Encryption.server_public_private_keys()
+        
+        # Creando la BBDD del SERVER
+        Users.create_BBDD()
+        # Ejecutando estado inicial del programa
         
         Text.loading()
         # Imprimiendo mensajes de bienvenida
@@ -56,27 +67,15 @@ class Text:
             Text.quit_program()
     
     @staticmethod
-    def registro():
+    def registro():        
         #Creamos una variable condición para asegurarnos de que la contraseña y el usuario se crean correctamente segun lo estándares
         cond = False
+        
         # Pantalla de carga
         Text.loading()
         
         # Creando nueva cuenta
-        while not cond:
-            try:
-                name = Text.db.create_account_name()
-                cond = True
-            except ValueError as e:
-                print(e)
-        
-        cond = False
-        while not cond:
-            try:
-                Text.db.create_account_password(name)
-                cond = True
-            except ValueError as e:
-                print(e)
+        Users.create_account()
         
         # Pantalla de carga
         Text.loading()
@@ -101,7 +100,7 @@ class Text:
 
         # Iniciando sesión
         try:
-            Text.db.login(nombre, password)
+            Users.login(nombre, password)
         except ValueError as e:
             print(e)
         
@@ -118,10 +117,10 @@ class Text:
         # Cargando el menu
         Renting.menu(nombre)
         
-        #Cuando acabe cerramos la sesion
-        Text.db.logout(nombre)
+        # Cuando acabe cerramos la sesion
+        Users.logout(nombre)
         
-        #Volvemos al menu inicial
+        # Volvemos al menu inicial
         Text.inicial()
         
         
