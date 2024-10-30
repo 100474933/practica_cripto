@@ -32,8 +32,10 @@ class Users:
                         return json.loads(content)
             except json.JSONDecodeError:
                 print("El archivo de datos está corrupto. Iniciando una base de datos vacía.")
+                exit(1)
             except Exception as e:
                 print(f"Error al leer el archivo: {e}")
+                exit(1)
         return []
 
     @staticmethod
@@ -55,7 +57,8 @@ class Users:
             Encryption.cifrar_users_json(db_file_path, public_key_path)
         
         except Exception as e:
-            print(f'{e}')
+            print(f'Error al guardar los datos')
+            exit(1)
             
     @staticmethod
     def create_account():
@@ -87,10 +90,10 @@ class Users:
                     print("Contraseña válida.")
                     break  # Salimos del bucle si la contraseña es válida
             
-            # Generamos una sal y derivamos la clave simétrica a partir de la contraseña
+            # Generamos una salt
             salt = os.urandom(16)  # Genera una sal aleatoria de 16 bytes
 
-            # Derivamos la clave simétrica a partir de la contraseña y la sal
+            # Generamos un token con la contraseña y el salt
             token = Encryption.generar_token(password, salt)
             
             # Creamos el nuevo usuario con solo 'salt' y 'token'

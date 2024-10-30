@@ -165,7 +165,8 @@ class Encryption:
                 key_file.write(Encryption.cifrar_clave_rsa(public_key, key))
         
         except Exception as e:
-            print(f'Error al cifrar el fichero JSON: {e}')
+            print(f'Error al cifrar el fichero JSON. Los datos fueron alterados. {e}')
+            exit(1)
         
     @staticmethod
     def cifrar_renting_json(json_path, public_key_path):
@@ -211,7 +212,8 @@ class Encryption:
                 key_file.write(Encryption.cifrar_clave_rsa(public_key, key))
         
         except Exception as e:
-            print(f'Error al cifrar el fichero JSON: {e}')
+            print(f'Error al cifrar el fichero JSON. Los datos fueron alterados. {e}')
+            exit(1)
 
     @staticmethod
     def descifrar_users_json(json_path, private_key_path, simetric_key_path):
@@ -255,7 +257,8 @@ class Encryption:
                 json.dump(data, file, indent='\t')
         
         except Exception as e:
-            print(f'Error al descifrar el fichero JSON: {e}')
+            print(f'Error al descifrar el fichero JSON. Los datos fueron alterados. {e}')
+            exit(1)
              
     @staticmethod
     def descifrar_renting_json(json_path, private_key_path, simetric_key_path):
@@ -299,7 +302,8 @@ class Encryption:
                 json.dump(data, file, indent='\t')
         
         except Exception as e:
-            print(f'Error al descifrar el fichero JSON: {e}')
+            print(f'Error al descifrar el fichero JSON. Los datos fueron alterados. {e}')
+            exit(1)
         
     
 
