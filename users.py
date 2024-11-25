@@ -19,9 +19,8 @@ class Users:
                 # Obtenemos las rutas de los ficheros que guardan la clave privada y la encriptación de la clave simetrica
                 private_key_path = os.path.abspath('SERVER')
                 simetric_key_path = private_key_path
-                private_key_path += '/KEYS/server_private_key.pem' 
-                simetric_key_path += '/KEYS/users_simetric_encrypted_key.bin'
-                
+                private_key_path += '/keys_and_certificate/private_key.pem' 
+                simetric_key_path += '/keys_and_certificate/users_simetric_encrypted_key.bin'
                 # Desencriptamos la base de datos
                 Encryption.descifrar_users_json(db_file_path, private_key_path, simetric_key_path)
                 
@@ -51,7 +50,7 @@ class Users:
             
             # Ahora procedemos a encriptar el fichero, para ello necesitaremos la clave publica del SERVER
             public_key_path = os.path.abspath('SERVER')
-            public_key_path += '/KEYS/server_public_key.pem'
+            public_key_path += '/keys_and_certificate/public_key.pem'
             
             # Encriptamos el fichero
             Encryption.cifrar_users_json(db_file_path, public_key_path)
@@ -107,6 +106,10 @@ class Users:
             # Añadimos el nuevo usuario a la base de datos (lista en memoria)
             data.append(new_user)
             Users.save_data(data)
+            
+            # Creamos las claves del usuario y su certificado digital
+            print('\nGenerando cuenta, espere unos segundos.')
+            Encryption.user_keys_and_certificate(name)    
 
         except Exception as e:
             raise e
@@ -128,14 +131,13 @@ class Users:
                     
                     # Si los token coinciden, significa que la contraseña es correcta
                     if token == new_token:
-                        print('La contraseña es correcta')
                         user['login'] = True
                         
                         # Guardamos los datos en la base de datos y la encriptamos
                         Users.save_data(data)
                         break
                     else:
-                        print('La contraseña no es correcta intentelo de nuevo')
+                        print('\nLa contraseña o nombre de usuario no son correctos intentelo de nuevo')
             
         except Exception as e:
             print(f'No se pudo iniciar sesión correctamente: {e}')
