@@ -271,7 +271,7 @@ class Renting:
             data = Renting.load_data()
             print('\nMostrando sus reservas, porfavor espere.')
             Renting.loading()
-            print(f"\nSus reservas, señor {name}:")
+            print(f"\nSus reservas, señor/a {name}:")
                 
             # Mostramos todas las reservas del usuario
             for reserve in data:

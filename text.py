@@ -11,17 +11,23 @@ class Text:
     
     @staticmethod
     def welcoming():
+        # Creo una carpeta para almacenar a mis usuarios, sus claves y certificado
+        os.makedirs('USERS', exist_ok=True)
         
-        # Creando las claves del SERVER, si no las tiene ya
-        path = os.path.abspath('SERVER')
-        private_key_path = path + '/KEYS/server_private_key.pem'
-        public_key_path = path + '/KEYS/server_public_key.pem'
-        if not os.path.exists(private_key_path) and not os.path.exists(public_key_path):
-            Encryption.server_public_private_keys()
+        # Creo una carpeta para almacerna las autoridades certificadoras
+        os.makedirs('ACs', exist_ok=True)
+        
+        # Creo una carpeta para almacenra las claves y certificado de mi server, asi como las bases de datos
+        os.makedirs('SERVER', exist_ok=True)
         
         # Creando la BBDD del SERVER
         Users.create_BBDD()
-        # Ejecutando estado inicial del programa
+
+        # Creamos las autoridades certificadoras, sus claves y certificados
+        Encryption.crear_estructura_PKI()
+        
+        # Creamos el certificado del server y sus claves RSA
+        Encryption.server_keys_and_certificate()
         
         Text.loading()
         # Imprimiendo mensajes de bienvenida
@@ -68,9 +74,6 @@ class Text:
     
     @staticmethod
     def registro():        
-        #Creamos una variable condición para asegurarnos de que la contraseña y el usuario se crean correctamente segun lo estándares
-        cond = False
-        
         # Pantalla de carga
         Text.loading()
         
@@ -104,6 +107,13 @@ class Text:
         except ValueError as e:
             print(e)
         
+        # Validando certificados del usuario
+        Encryption.verificacion_certificados_usuario(nombre)
+        Encryption.verificacion_certificados_server()
+        
+        # Creando una clave de sesión
+        ks_fragemnts = Encryption.crear_clave_sesion(nombre)
+        Encryption.validar_clave_sesion(ks_fragemnts, nombre)
 
         # Pantalla de carga
         Text.loading()
@@ -113,7 +123,7 @@ class Text:
 
         # Pantalla de carga
         Text.loading()
-
+        
         # Cargando el menu
         Renting.menu(nombre)
         
@@ -122,8 +132,6 @@ class Text:
         
         # Volvemos al menu inicial
         Text.inicial()
-        
-        
     
     @staticmethod
     def quit_program():
