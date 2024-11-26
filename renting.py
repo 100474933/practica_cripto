@@ -1,11 +1,7 @@
-
 import json
 import os
 from datetime import datetime, timedelta
 from encryptation import Encryption
-
-
-
 
 class Renting:
     
@@ -26,7 +22,7 @@ class Renting:
             
             # Ahora procedemos a encriptar el fichero, para ello necesitaremos la clave publica del SERVER
             public_key_path = os.path.abspath('SERVER')
-            public_key_path += '/KEYS/server_public_key.pem'
+            public_key_path += '/keys_and_certificate/public_key.pem'
             
             # Encriptamos el fichero
             Encryption.cifrar_renting_json(db_file_path, public_key_path)
@@ -43,38 +39,24 @@ class Renting:
                 # Obtenemos las rutas de los ficheros que guardan la clave privada y la encriptación de la clave simetrica
                 private_key_path = os.path.abspath('SERVER')
                 simetric_key_path = private_key_path
-                private_key_path += '/KEYS/server_private_key.pem' 
-                simetric_key_path += '/KEYS/renting_simetric_encrypted_key.bin'
+                private_key_path += '/keys_and_certificate/private_key.pem' 
+                simetric_key_path += '/keys_and_certificate/renting_simetric_encrypted_key.bin'
                 
                 # Desencriptamos la base de datos
-                Encryption.descifrar_renting_json(db_file_path, private_key_path, simetric_key_path)
-                
-                # Una vez desencriptado la base de datos entramos y leemos los datos
-                with open(db_file_path, 'r') as data:
-                    content = data.read().strip()  # Leemos el archivo y eliminamos espacios en blanco
-                    if content:  # Solo intentamos cargar el JSON si hay contenido
-                        return json.loads(content)
+                if Encryption.descifrar_renting_json(db_file_path, private_key_path, simetric_key_path):
+                    # Una vez desencriptado la base de datos entramos y leemos los datos
+                    with open(db_file_path, 'r') as data:
+                        content = data.read().strip()  # Leemos el archivo y eliminamos espacios en blanco
+                        if content:  # Solo intentamos cargar el JSON si hay contenido
+                            return json.loads(content)
+                else:
+                    print("Error al descifrar el fichero JSON. Los datos fueron alterados.")
             except json.JSONDecodeError:
                 print("El archivo de datos está corrupto. Iniciando una base de datos vacía.")
             except Exception as e:
                 print(f"Error al leer el archivo: {e}")
         return []
     
-    @staticmethod
-    def start_secure_session(user_public_key_path):
-        # Genera una clave de sesión temporal
-        session_key = Encryption.generar_key_chacha20()
-        
-        # Cifra la clave de sesión temporal con la clave pública del usuario
-        with open(user_public_key_path, 'rb') as key_file:
-            user_public_key = serialization.load_pem_public_key(
-                key_file.read(),
-                backend=default_backend()
-            )
-        
-        encrypted_session_key = Encryption.cifrar_clave_rsa(user_public_key, session_key)
-        return session_key, encrypted_session_key
-
     @staticmethod
     def time_in_out():
         # Está función comprueba si un coche esta alquilado en el momento actual o no
@@ -183,72 +165,107 @@ class Renting:
                 command = input("\nLAS OPCIONES SON LAS QUE APARECEN EN EL MENU(1, 2, 3 , 4 y 5).ELIGE UNA OPCIÓN PARA CONTINUAR: ")
                 Renting.menu(name)
     
-        @staticmethod
-        def reserve(name, car, session_key):
-            try:
-                data = Renting.load_data()
-                if data is not None:
-                    rented_cars = 0
-                    for rental in data:
-                        if 'car' in rental and rental['car'] == car and rental['rented']:
-                            rented_cars += 1
-                    
-                    if rented_cars == 10:
-                        # Mensaje de error cifrado para el usuario
-                        error_message = f"Lo sentimos, no quedan {car} disponibles. Pruebe con otro coche."
-                        nonce, encrypted_message = Encryption.cifrar_chacha20(session_key, error_message.encode('utf-8'))
-                        return nonce, encrypted_message
-                    
-                    # Solicitar y validar fecha y días de alquiler como antes
-                    while True:
-                        try:
-                            rent_time_str = input('\nIntroduce una fecha de reserva en formato DD/MM/AAAA: ')
-                            rent_time = datetime.strptime(rent_time_str, "%d/%m/%Y")
-                            if rent_time <= datetime.now():
-                                print('\nLa fecha debe de ser mayor que la actual, inténtelo de nuevo.')
-                            else:
-                                break
-                        except ValueError:
-                            print('\nFormato de fecha inválido, intentelo de nuevo.')
-                    
-                    while True:
-                        try:
-                            time = int(input('\n¿Cuántos días desea alquilar el coche?: '))
-                            break
-                        except ValueError:
-                            print('Por favor, ingrese un número de días entero.')
-                    
-                    # Calcular fecha de devolución y formato
-                    return_time = rent_time + timedelta(days=time)
-                    frent_time = rent_time.strftime("%d/%m/%Y") + " 08:00:00"
-                    freturn_time = return_time.strftime("%d/%m/%Y") + " 08:00:00"
-                    
-                    # Generar un número de reserva único
-                    reserve_number = str(len(data) + 1).zfill(10)
-                    
-                    rental_data = {
-                        'name': name,
-                        'car': car,
-                        'rent_time': frent_time,
-                        'return_time': freturn_time,
-                        'rented': False,
-                        'reserve_number': reserve_number
-                    }
-                    
-                    # Añadir a la base de datos y cifrar con sesión
-                    data.append(rental_data)
-                    Renting.save_data(data)
-
-                    # Mensaje de confirmación cifrado
-                    confirmation_message = f"Reserva realizada con éxito. Reserva del coche {car} del {frent_time} hasta el {freturn_time}. Número de reserva: {reserve_number}"
-                    nonce, encrypted_confirmation = Encryption.cifrar_chacha20(session_key, confirmation_message.encode('utf-8'))
-                    
-                    return nonce, encrypted_confirmation
+    @staticmethod
+    def reserve(name, car):
+        try:
+            # Solicitar al servidor los datos iniciales (lista de coches alquilados)
+            print("[CLIENTE] Enviando solicitud para cargar datos cifrados...")
+            encrypted_request = Encryption.encrypt_message(json.dumps({"action": "load_data"}))
             
-            except Exception as e:
-                print(f'Error al procesar la reserva: {e}')
+            # Simulación de descifrado en el servidor y envío de respuesta
+            print("[INFO] Descifrando datos recibidos del servidor...")
+            decrypted_request = json.loads(Encryption.decrypt_message(encrypted_request))
+            
+            # Verificar que la solicitud es válida
+            if decrypted_request.get("action") != "load_data":
+                raise ValueError("[ERROR] Solicitud inválida recibida en el servidor.")
+            
+            # Cargar datos (simulación de datos del servidor)
+            data = Renting.load_data()  # Aquí deberías cargar la base de datos del servidor
+            encrypted_response = Encryption.encrypt_message(json.dumps(data))
+            
+            # Descifrar respuesta del servidor en el cliente
+            print("[INFO] Descifrando datos recibidos del servidor...")
+            response_data = json.loads(Encryption.decrypt_message(encrypted_response))
+            
+            # Validar y cargar datos descifrados
+            if not isinstance(response_data, list):
+                raise ValueError("[ERROR] Los datos descifrados no tienen el formato esperado.")
 
-      
+            # Verificar disponibilidad del coche seleccionado
+            rented_cars = sum(1 for rental in response_data if rental.get("car") == car and rental.get("rented", False))
+            if rented_cars >= 10:
+                print(f"[INFO] Lo sentimos, no quedan {car} disponibles. Pruebe con otro coche.")
+                Renting.reserve_menu(name)
+                return
+
+            # Solicitar fecha de reserva al cliente
+            while True:
+                try:
+                    rent_time_str = input("[CLIENTE] Introduce una fecha de reserva (DD/MM/AAAA): ")
+                    print("[CLIENTE] Enviando fecha cifrada al servidor...")
+                    encrypted_date = Encryption.encrypt_message(json.dumps({"rent_time": rent_time_str}))
+                    
+                    # Simulación de respuesta del servidor validando la fecha
+                    print("[INFO] Descifrando fecha recibida del cliente...")
+                    decrypted_date = json.loads(Encryption.decrypt_message(encrypted_date))
+                    rent_time = datetime.strptime(decrypted_date.get("rent_time"), "%d/%m/%Y")
+                    
+                    if rent_time <= datetime.now():
+                        print("[INFO] La fecha debe ser mayor que la actual. Inténtalo de nuevo.")
+                    else:
+                        break
+                except ValueError:
+                    print("[INFO] Formato de fecha inválido. Inténtalo de nuevo.")
+
+            # Solicitar duración del alquiler al cliente
+            while True:
+                try:
+                    days = int(input("[CLIENTE] ¿Cuántos días deseas alquilar el coche?: "))
+                    print("[CLIENTE] Enviando duración cifrada al servidor...")
+                    encrypted_days = Encryption.encrypt_message(json.dumps({"days": days}))
+
+                    # Simulación de respuesta del servidor
+                    print("[INFO] Descifrando duración recibida del cliente...")
+                    decrypted_days = json.loads(Encryption.decrypt_message(encrypted_days))
+                    days = int(decrypted_days.get("days"))
+                    break
+                except ValueError:
+                    print("[INFO] Ingresa un número válido de días.")
+
+            return_time = rent_time + timedelta(days=days)
+
+            # Formatear las fechas
+            frent_time = rent_time.strftime("%d/%m/%Y") + " 08:00:00"
+            freturn_time = return_time.strftime("%d/%m/%Y") + " 08:00:00"
+
+            reserve_number = str(len(response_data) + 1).zfill(10)
+            rental_data = {
+                "name": name,
+                "car": car,
+                "rent_time": frent_time,
+                "return_time": freturn_time,
+                "rented": False,
+                "reserve_number": reserve_number,
+            }
+
+            # Enviar solicitud cifrada al servidor con los datos de la reserva
+            print("[CLIENTE] Enviando datos de reserva cifrados al servidor...")
+            encrypted_rental = Encryption.encrypt_message(json.dumps(rental_data))
+
+            # Simulación de procesamiento en el servidor
+            print("[INFO] Procesando reserva en el servidor...")
+            decrypted_rental = json.loads(Encryption.decrypt_message(encrypted_rental))
+            
+            if decrypted_rental.get("status") == "success":
+                print(f"[INFO] Reserva realizada con éxito. Número de reserva: {reserve_number}")
+            else:
+                print("[INFO] Error al procesar la reserva en el servidor.")
+
+        except Exception as e:
+            print(f"[ERROR] Error en la reserva: {e}")
+
+
     @staticmethod
     def user_reservations(name):
         cond = False

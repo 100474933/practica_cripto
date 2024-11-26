@@ -20,7 +20,7 @@ class Users:
                 private_key_path = os.path.abspath('SERVER')
                 simetric_key_path = private_key_path
                 private_key_path += '/keys_and_certificate/private_key.pem' 
-                simetric_key_path += '/keys_and_certificate/users_simetric_encrypted_key.bin'
+                simetric_key_path += '/keys_and_certificate/renting_simetric_encrypted_key.bin'
                 # Desencriptamos la base de datos
                 Encryption.descifrar_users_json(db_file_path, private_key_path, simetric_key_path)
                 
@@ -39,10 +39,9 @@ class Users:
 
     @staticmethod
     def save_data(data):
-        # Obtenemos la ruta donde guardamos los datos
-        db_file_path = os.path.abspath('SERVER')
-        db_file_path += '/BBDD/BBDD_users.json'
-        
+        db_file_path = os.path.abspath('SERVER/BBDD/BBDD_users.json')
+        os.makedirs(os.path.abspath('SERVER/BBDD'), exist_ok=True)
+
         try:
             # Abrimos el fichero de datos y los guardamos
             with open(db_file_path, 'w') as bbdd_file:

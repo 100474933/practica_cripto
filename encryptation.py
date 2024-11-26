@@ -330,7 +330,7 @@ class Encryption:
             # Ahora genero un fichero que es donde guardaremos el cifrado de la clave simetrica con la clave publica del server
             keys_path = os.path.abspath('SERVER')
             keys_path += '/keys_and_certificate'
-            simetric_key_path = os.path.join(keys_path, 'users_simetric_encrypted_key.bin')
+            simetric_key_path = os.path.join(keys_path, 'renting_simetric_encrypted_key.bin')
             
             # Abrimos el fichero que maneja la clave publica, para cifrar la clave simétrica
             with open(public_key_path, 'rb') as key_file:
@@ -976,3 +976,124 @@ class Encryption:
             print(f"\nArchivo no encontrado: {e}")
         except Exception as e:
             print(f"\nError inesperado: {e}")
+
+    @staticmethod
+    def get_session_key(client=False, username=None):
+        """Obtiene la clave de sesión para el servidor o el cliente."""
+        if client and username:
+            session_key_path = os.path.abspath(f'USERS/{username}/session_key.bin')
+        else:
+            session_key_path = os.path.abspath('SERVER/keys_and_certificate/session_key.bin')
+
+        if os.path.exists(session_key_path):
+            with open(session_key_path, "rb") as f:
+                return f.read()
+        else:
+            raise FileNotFoundError("No se encontró la clave de sesión.")
+
+    @staticmethod
+    def get_private_key(client=False, username=None):
+        """Obtiene la clave privada del servidor o del cliente."""
+        if client and username:
+            private_key_path = os.path.abspath(f'USERS/{username}/private_key.pem')
+        else:
+            private_key_path = os.path.abspath('SERVER/keys_and_certificate/private_key.pem')
+
+        if os.path.exists(private_key_path):
+            with open(private_key_path, "rb") as f:
+                return load_pem_private_key(f.read(), password=None)
+        else:
+            raise FileNotFoundError("No se encontró la clave privada.")
+
+    @staticmethod
+    def get_public_key(client=False, username=None):
+        """Obtiene la clave pública del servidor o del cliente."""
+        if client and username:
+            public_key_path = os.path.abspath(f'USERS/{username}/public_key.pem')
+        else:
+            public_key_path = os.path.abspath('SERVER/keys_and_certificate/public_key.pem')
+
+        if os.path.exists(public_key_path):
+            with open(public_key_path, "rb") as f:
+                return load_pem_public_key(f.read())
+        else:
+            raise FileNotFoundError("No se encontró la clave pública.")
+
+    @staticmethod
+    def encrypt_message(message: str, client=False, username=None):
+        """Cifra un mensaje con la clave de sesión y firma el hash."""
+        print(f"[INFO] Cifrando mensaje{' para el cliente' if client else ''}...")
+        try:
+            session_key = Encryption.get_session_key(client, username)
+            private_key = Encryption.get_private_key(client, username)
+
+            # Calcular el hash del mensaje
+            digest = hashes.Hash(hashes.SHA256())
+            digest.update(message.encode('utf-8'))
+            message_hash = digest.finalize()
+
+            # Firmar el hash del mensaje con la clave privada
+            signature = private_key.sign(
+                message_hash,
+                padding.PSS(
+                    mgf=padding.MGF1(hashes.SHA256()),
+                    salt_length=padding.PSS.MAX_LENGTH
+                ),
+                hashes.SHA256()
+            )
+
+            # Adjuntar la firma al mensaje y cifrar todo con la clave de sesión
+            message_with_signature = json.dumps({
+                "message": message,
+                "signature": base64.b64encode(signature).decode('utf-8')
+            }).encode('utf-8')
+
+            # Cifrar usando ChaCha20Poly1305
+            chacha = ChaCha20Poly1305(session_key)
+            nonce = os.urandom(12)
+            ciphertext = chacha.encrypt(nonce, message_with_signature, None)
+
+            print("[INFO] Mensaje cifrado exitosamente.")
+            return {"nonce": nonce.hex(), "ciphertext": ciphertext.hex()}
+        except Exception as e:
+            raise ValueError(f"Error al cifrar el mensaje: {e}")
+
+    @staticmethod
+    def decrypt_message(encrypted_data: dict, client=False, username=None):
+        """Descifra un mensaje cifrado y verifica la firma."""
+        print(f"[INFO] Descifrando mensaje{' para el cliente' if client else ''}...")
+        try:
+            session_key = Encryption.get_session_key(client, username)
+            public_key = Encryption.get_public_key(client, username)
+
+            # Descifrar con ChaCha20Poly1305
+            chacha = ChaCha20Poly1305(session_key)
+            nonce = bytes.fromhex(encrypted_data['nonce'])
+            ciphertext = bytes.fromhex(encrypted_data['ciphertext'])
+            message_with_signature = chacha.decrypt(nonce, ciphertext, None)
+
+            # Separar mensaje y firma
+            message_data = json.loads(message_with_signature.decode('utf-8'))
+            message = message_data["message"]
+            signature = base64.b64decode(message_data["signature"])
+
+            # Calcular el hash del mensaje
+            digest = hashes.Hash(hashes.SHA256())
+            digest.update(message.encode('utf-8'))
+            message_hash = digest.finalize()
+
+            # Verificar la firma usando la clave pública
+            public_key.verify(
+                signature,
+                message_hash,
+                padding.PSS(
+                    mgf=padding.MGF1(hashes.SHA256()),
+                    salt_length=padding.PSS.MAX_LENGTH
+                ),
+                hashes.SHA256()
+            )
+
+            print("[INFO] Mensaje descifrado y verificado exitosamente.")
+            return message
+        except Exception as e:
+            raise ValueError(f"Error al descifrar o verificar el mensaje: {e}")
