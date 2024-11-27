@@ -18,6 +18,8 @@ from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.hashes import SHA256
+import tempfile
+from filelock import FileLock
 
 
 class Encryption:
@@ -347,6 +349,7 @@ class Encryption:
             print(f'Error al cifrar el fichero JSON. Los datos fueron alterados. {e}')
             exit(1)
         
+
     @staticmethod
     def cifrar_renting_json(json_path, public_key_path):
         """Esta función lo que hara será cifrar el fichero BBDD_renting.json, y cifrar asimetricamente
@@ -391,6 +394,52 @@ class Encryption:
         
         except Exception as e:
             print(f'Error al cifrar el fichero JSON. Los datos fueron alterados. {e}')
+            exit(1)
+
+
+    @staticmethod
+    def descifrar_renting_json(json_path, private_key_path, simetric_key_path):
+        """Esta función descifra el fichero BBDD_renting.json con la clave simétrica que hemos cifrado asimétricamente
+        en la función cifrar_renting_json"""
+        try:
+            # Cargamos la clave privada RSA desde el archivo
+            with open(private_key_path, 'rb') as key_file:
+                private_key = serialization.load_pem_private_key(
+                key_file.read(),
+                password=None,
+                backend=default_backend()
+                )
+            
+            # Cargamos la clave simétrica cifrada desde el archivo
+            with open(simetric_key_path, 'rb') as key_file:
+                encrypted_key = key_file.read()
+            
+            # Una vez cargamos la clave simétrica cifrada, eliminamos el archivo que la almacenaba
+            os.remove(simetric_key_path)
+            
+            # Desciframos la clave simétrica utilizando la clave privada RSA
+            key = Encryption.descifrar_clave_rsa(private_key, encrypted_key)
+            
+            # Cargamos el archivo cifrado
+            with open(json_path, 'r') as file:
+                cipherdata = json.load(file)
+            
+            # Desciframos el nonce y el ciphertext que estan guardados en el json
+            nonce = base64.urlsafe_b64decode(cipherdata['nonce'])
+            ciphertext = base64.urlsafe_b64decode(cipherdata['ciphertext'])
+            
+            # Desencriptamos el contenido encriptado del fichero json
+            json_data = Encryption.descifrar_chacha20(key, nonce, ciphertext)
+            
+            # Pasamos el contenido de json de bytes a una lista
+            data = json.loads(json_data)
+            
+            # Restauramos el archivo json con los datos que ya tenia 
+            with open(json_path, 'w') as file:
+                json.dump(data, file, indent='\t')
+        
+        except Exception as e:
+            print(f'Error al descifrar el fichero JSON. Los datos fueron alterados. {e}')
             exit(1)
 
     @staticmethod
@@ -438,51 +487,6 @@ class Encryption:
             print(f'Error al descifrar el fichero JSON. Los datos fueron alterados. {e}')
             exit(1)
              
-    @staticmethod
-    def descifrar_renting_json(json_path, private_key_path, simetric_key_path):
-        """Esta función descifra el fichero BBDD_renting.json con la clave simétrica que hemos cifrado asimétricamente
-        en la función cifrar_renting_json"""
-        try:
-            # Cargamos la clave privada RSA desde el archivo
-            with open(private_key_path, 'rb') as key_file:
-                private_key = serialization.load_pem_private_key(
-                key_file.read(),
-                password=None,
-                backend=default_backend()
-                )
-            
-            # Cargamos la clave simétrica cifrada desde el archivo
-            with open(simetric_key_path, 'rb') as key_file:
-                encrypted_key = key_file.read()
-            
-            # Una vez cargamos la clave simétrica cifrada, eliminamos el archivo que la almacenaba
-            os.remove(simetric_key_path)
-            
-            # Desciframos la clave simétrica utilizando la clave privada RSA
-            key = Encryption.descifrar_clave_rsa(private_key, encrypted_key)
-            
-            # Cargamos el archivo cifrado
-            with open(json_path, 'r') as file:
-                cipherdata = json.load(file)
-            
-            # Desciframos el nonce y el ciphertext que estan guardados en el json
-            nonce = base64.urlsafe_b64decode(cipherdata['nonce'])
-            ciphertext = base64.urlsafe_b64decode(cipherdata['ciphertext'])
-            
-            # Desencriptamos el contenido encriptado del fichero json
-            json_data = Encryption.descifrar_chacha20(key, nonce, ciphertext)
-            
-            # Pasamos el contenido de json de bytes a una lista
-            data = json.loads(json_data)
-            
-            # Restauramos el archivo json con los datos que ya tenia 
-            with open(json_path, 'w') as file:
-                json.dump(data, file, indent='\t')
-        
-        except Exception as e:
-            print(f'Error al descifrar el fichero JSON. Los datos fueron alterados. {e}')
-            exit(1)
-        
     @staticmethod
     def crear_estructura_PKI():
         # Lo primero es comprobar si la estructura esta ya creada
@@ -1097,3 +1101,4 @@ class Encryption:
             return message
         except Exception as e:
             raise ValueError(f"Error al descifrar o verificar el mensaje: {e}")
+        

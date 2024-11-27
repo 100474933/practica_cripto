@@ -116,30 +116,45 @@ class Users:
     @staticmethod
     def login(name, password):
         try:
-            # Cargamos la base de datos desencriptada
+            print(f"[DEBUG] Intentando iniciar sesión con el usuario: {name}")
+
+            # Cargar datos de usuarios
             data = Users.load_data()
-            
+
+            # Buscar usuario en la base de datos
             for user in data:
-                if user['name'] == name: # Comprobamos si el nombre de usuario existe en la BBDD
-                    # Desencriptamos el salt y pasamos el token a bytes
+                if user['name'] == name:
+                    print(f"[DEBUG] Usuario encontrado: {name}")
+
+                    # Validar contraseña
                     salt = base64.urlsafe_b64decode(user['salt'])
                     token = user['token'].encode()
-                    
-                    # Generamos un nuevo token con el mismo salt y la password que nos ha pasado el user
                     new_token = Encryption.generar_token(password, salt)
-                    
-                    # Si los token coinciden, significa que la contraseña es correcta
+
                     if token == new_token:
+                        print(f"[DEBUG] Contraseña válida para el usuario: {name}")
                         user['login'] = True
-                        
-                        # Guardamos los datos en la base de datos y la encriptamos
+
+                        # Guardar estado de login
                         Users.save_data(data)
+
+                        # Generar clave de sesión
+                        session_key = Encryption.crear_clave_sesion(name)
+                        print(f"[DEBUG] Clave de sesión generada: {session_key}")
+
                         break
                     else:
-                        print('\nLa contraseña o nombre de usuario no son correctos intentelo de nuevo')
-            
+                        print("[ERROR] Contraseña incorrecta.")
+                        return
+
+            else:
+                print("[ERROR] Usuario no encontrado.")
+                return Users.login()
+
         except Exception as e:
-            print(f'No se pudo iniciar sesión correctamente: {e}')
+            print(f"[ERROR] No se pudo iniciar sesión: {e}")
+            return Users.login()
+
 
     @staticmethod
     def logout(name):
@@ -150,6 +165,9 @@ class Users:
                     user['login'] = False 
                     Users.save_data(data)
                     print(f"El usuario {name} cerró sesión exitosamente.")
+                    
+                    # Eliminar clave de sesión
+                    Encryption.eliminar_clave_sesion(name)
                     
         except Exception as e:
             print(f'No se pudo cerrar sesión correctamente: {e}')

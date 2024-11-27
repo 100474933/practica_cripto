@@ -43,19 +43,19 @@ class Renting:
                 simetric_key_path += '/keys_and_certificate/renting_simetric_encrypted_key.bin'
                 
                 # Desencriptamos la base de datos
-                if Encryption.descifrar_renting_json(db_file_path, private_key_path, simetric_key_path):
-                    # Una vez desencriptado la base de datos entramos y leemos los datos
-                    with open(db_file_path, 'r') as data:
-                        content = data.read().strip()  # Leemos el archivo y eliminamos espacios en blanco
-                        if content:  # Solo intentamos cargar el JSON si hay contenido
-                            return json.loads(content)
-                else:
-                    print("Error al descifrar el fichero JSON. Los datos fueron alterados.")
+                Encryption.descifrar_renting_json(db_file_path, private_key_path, simetric_key_path)
+                
+                # Una vez desencriptado la base de datos entramos y leemos los datos
+                with open(db_file_path, 'r') as data:
+                    content = data.read().strip()  # Leemos el archivo y eliminamos espacios en blanco
+                    if content:  # Solo intentamos cargar el JSON si hay contenido
+                        return json.loads(content)
             except json.JSONDecodeError:
                 print("El archivo de datos está corrupto. Iniciando una base de datos vacía.")
             except Exception as e:
                 print(f"Error al leer el archivo: {e}")
         return []
+    
     
     @staticmethod
     def time_in_out():
@@ -96,12 +96,12 @@ class Renting:
         print("|__|_|  /\___  >___|  /____/  \/ ")
         print("      \/     \/     \/           ")
 
-        print("    ______             ______             ______                ______                     ______         ")
-        print("   /|_||_\\`.__       /|_||_\\`.__       /|_||_\\`.__          /|_||_\\`.__               /|_||_\\`.__      ")
+        print("    ______             ______             ______                ______                     ______          ")
+        print("   /|_||_\\`.__       /|_||_\\`.__       /|_||_\\`.__          /|_||_\\`.__               /|_||_\\`.__     ")
         print("  (   _    _ _ \\    (   _    _ _ \\    (   _    _ _ \\       (   _    _ _ \\            (   _    _ _ \\   ")
-        print("  =`-(_)--(_)-'      =`-(_)--(_)-'      =`-(_)--(_)-'         =`-(_)--(_)-'              =`-(_)--(_)-'   ")
-        print("------------------>------------------->------------------>------------------------->------------------>")
-        print(" |    AUDI X5       |  TOYOTA YARIS   |    BMW 320D       |    MITSUBISHI MONTERO   |    SMART BRABUS   |")
+        print("  =`-(_)--(_)-'      =`-(_)--(_)-'      =`-(_)--(_)-'         =`-(_)--(_)-'              =`-(_)--(_)-'     ")
+        print("------------------>------------------->------------------>------------------------->---------------------->")
+        print(" |    AUDI X5       |  TOYOTA YARIS   |    BMW 320D       |    MITSUBISHI MONTERO   |    SMART BRABUS   |  ")
 
         
         print("\n1 - RESERVAR COCHES")
@@ -241,29 +241,26 @@ class Renting:
 
             reserve_number = str(len(response_data) + 1).zfill(10)
             rental_data = {
-                "name": name,
-                "car": car,
-                "rent_time": frent_time,
-                "return_time": freturn_time,
-                "rented": False,
-                "reserve_number": reserve_number,
+                'name': name, 
+                'car': car, 
+                'rent_time': frent_time, 
+                'return_time': freturn_time, 
+                'rented': False, 
+                'reserve_number': reserve_number
             }
-
-            # Enviar solicitud cifrada al servidor con los datos de la reserva
-            print("[CLIENTE] Enviando datos de reserva cifrados al servidor...")
-            encrypted_rental = Encryption.encrypt_message(json.dumps(rental_data))
-
-            # Simulación de procesamiento en el servidor
-            print("[INFO] Procesando reserva en el servidor...")
-            decrypted_rental = json.loads(Encryption.decrypt_message(encrypted_rental))
             
-            if decrypted_rental.get("status") == "success":
-                print(f"[INFO] Reserva realizada con éxito. Número de reserva: {reserve_number}")
-            else:
-                print("[INFO] Error al procesar la reserva en el servidor.")
+            # Añadimos el nuevo registro de alquiler a la base de datos y la encriptamos
+            data.append(rental_data)
+            Renting.save_data(data)
+            
+            print('Reserva realizada con éxito.')
+            print(f"Reserva del coche {car} del día {frent_time} hasta el día {freturn_time}")
+            print(f"Número de reserva: {reserve_number}")
 
+            Renting.menu(name)
+            
         except Exception as e:
-            print(f"[ERROR] Error en la reserva: {e}")
+            print(f'Error al realizar la reserva: {e}')
 
 
     @staticmethod
