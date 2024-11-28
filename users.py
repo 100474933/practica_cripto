@@ -20,7 +20,7 @@ class Users:
                 private_key_path = os.path.abspath('SERVER')
                 simetric_key_path = private_key_path
                 private_key_path += '/keys_and_certificate/private_key.pem' 
-                simetric_key_path += '/keys_and_certificate/renting_simetric_encrypted_key.bin'
+                simetric_key_path += '/keys_and_certificate/users_simetric_encrypted_key.bin'
                 # Desencriptamos la base de datos
                 Encryption.descifrar_users_json(db_file_path, private_key_path, simetric_key_path)
                 

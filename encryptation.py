@@ -330,7 +330,7 @@ class Encryption:
             # Ahora genero un fichero que es donde guardaremos el cifrado de la clave simetrica con la clave publica del server
             keys_path = os.path.abspath('SERVER')
             keys_path += '/keys_and_certificate'
-            simetric_key_path = os.path.join(keys_path, 'renting_simetric_encrypted_key.bin')
+            simetric_key_path = os.path.join(keys_path, 'users_simetric_encrypted_key.bin')
             
             # Abrimos el fichero que maneja la clave publica, para cifrar la clave simétrica
             with open(public_key_path, 'rb') as key_file:
@@ -1098,4 +1098,17 @@ class Encryption:
             return message
         except Exception as e:
             raise ValueError(f"Error al descifrar o verificar el mensaje: {e}")
+    
+    @staticmethod
+    def eliminar_clave_sesion(name):
+        # Primero obtenemos la ruta del usuario
+        user_path = os.path.abspath(f'USERS/{name}/session_key.bin')
+        server_path = os.path.abspath('SERVER/keys_and_certificate/session_key.bin')
         
+        try:
+            os.remove(user_path)
+            os.remove(server_path)
+            print('\nClave de sesión eliminada correctamente.')
+        
+        except Exception as e:
+            print(f'Error al eliminar la clave de sesión: {e}')
