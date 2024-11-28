@@ -289,20 +289,6 @@ class Renting:
     @staticmethod
     def my_reservations(name):
         try:
-            # Cargamos la base de datos desencriptada
-            data = Renting.load_data()
-            print('\nMostrando sus reservas, por favor espere.')
-            Renting.loading()
-            
-            # Enviar solicitud cifrada para cargar datos
-            encrypted_request = Encryption.encrypt_message(json.dumps({"action": "load_data"}))
-            print("[CLIENTE] Enviando solicitud para cargar datos cifrados...")
-            
-            # Simulación de descifrado en el servidor y envío de respuesta
-            decrypted_request = json.loads(Encryption.decrypt_message(encrypted_request))
-            if decrypted_request.get("action") != "load_data":
-                raise ValueError("[ERROR] Solicitud inválida recibida en el servidor.")
-            
             # Cargar datos (simulación de datos del servidor)
             data = Renting.load_data()
             encrypted_response = Encryption.encrypt_message(json.dumps(data))
@@ -326,6 +312,8 @@ class Renting:
                     print(f"Número de reserva: {reserve['reserve_number']}")
             
             Renting.loading()
+            
+            Renting.save_data(data)
                 
             Renting.user_reservations(name)
         except Exception as e:
@@ -334,33 +322,60 @@ class Renting:
     @staticmethod
     def cancel_reservation(name):
         try:
-            # Cargamos la base de datos desencriptada
-            data= Renting.load_data()
-            
-            # Creamos una nueva lista donde meteremos todas las reservas menos la que quiera eliminar
-            updated_data = []
-            
-            # Creamos una variable de decisión para encontrar la reserva
-            rental_found = False
-            reserve_number = input("\nPor favor, introduzaca el número de la reserva que quiere eliminar: ")
-            Renting.loading()
+            # Cargar los datos de las reservas
+            data = Renting.load_data()
 
-            # Buscamos todas las reservas del usuario hasta encontrar la que quiere eliminar
-            for reserve in data:   
-                if reserve['name'] == name and reserve['reserve_number'] == reserve_number:
+            # Lista para almacenar reservas actualizadas
+            updated_data = []
+            rental_found = False
+
+            # Mensaje inicial al usuario
+            m = "\nPor favor, introduzca el número de la reserva que quiere eliminar: "
+            
+            # Cifrar y descifrar mensaje del servidor (simulación)
+            print('[INFO] Cifrando el mensaje del servidor.')
+            encrypted_message = Encryption.encrypt_message(m)
+            print("[INFO] Descifrando datos enviados por el servidor...")
+            decrypted_message = Encryption.decrypt_message(encrypted_message)
+            
+            # Capturar input del usuario
+            reserve_number = input(decrypted_message).strip()
+
+            # Cifrar y descifrar el input del usuario
+            print('[INFO] Cifrando el mensaje del usuario.')
+            encrypted_response = Encryption.encrypt_message(reserve_number)
+            print("[INFO] Descifrando datos enviados por el usuario...")
+            decrypted_response = Encryption.decrypt_message(encrypted_response).strip()
+
+            # Validar el formato del número de reserva
+            if not decrypted_response.isdigit():
+                print("[ERROR] El número de reserva debe ser un valor numérico.")
+                return
+
+            # Buscar y eliminar la reserva
+            Renting.loading()
+            for reserve in data:
+                if reserve['name'] == name and str(reserve['reserve_number']) == decrypted_response:
                     rental_found = True
                 else:
                     updated_data.append(reserve)
 
+            # Procesar resultado
             if rental_found:
-                # Guardamos la nueva base de datos y la encriptamos
+                # Guardar la nueva base de datos
                 Renting.save_data(updated_data)
-                print("\nReserva cancelada correctamente.")
+                m2 = "\nReserva cancelada correctamente."
+                
+                # Cifrar y descifrar mensaje de confirmación
+                print('[INFO] Cifrando el mensaje del servidor.')
+                encrypted_message = Encryption.encrypt_message(m2)
+                decrypted_message = Encryption.decrypt_message(encrypted_message)
+                print(decrypted_message)
             else:
                 print("No se encontró la reserva.")
 
+            # Mostrar las reservas restantes del usuario
+            Renting.user_reservations(name)
+
         except Exception as e:
-            raise e
-    
-        Renting.user_reservations(name)
-    
+            print(f"[ERROR] Se produjo un error: {e}")

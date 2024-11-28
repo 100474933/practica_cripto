@@ -1,10 +1,4 @@
-[
-	{
-		"name": "Maria",
-		"car": "AUDI X5",
-		"rent_time": "10/10/2026 08:00:00",
-		"return_time": "13/10/2026 08:00:00",
-		"rented": false,
-		"reserve_number": "0000000001"
-	}
-]
+{
+	"nonce": "aW3O9k7tfeT4Adir",
+	"ciphertext": "vu5pwlK7ZrmdAHMX-aQRTBtz"
+}
