@@ -56,7 +56,6 @@ class Renting:
                 print(f"Error al leer el archivo: {e}")
         return []
     
-    
     @staticmethod
     def time_in_out():
         # Está función comprueba si un coche esta alquilado en el momento actual o no
@@ -292,28 +291,45 @@ class Renting:
         try:
             # Cargamos la base de datos desencriptada
             data = Renting.load_data()
-            print('\nMostrando sus reservas, porfavor espere.')
+            print('\nMostrando sus reservas, por favor espere.')
             Renting.loading()
+            
+            # Enviar solicitud cifrada para cargar datos
+            encrypted_request = Encryption.encrypt_message(json.dumps({"action": "load_data"}))
+            print("[CLIENTE] Enviando solicitud para cargar datos cifrados...")
+            
+            # Simulación de descifrado en el servidor y envío de respuesta
+            decrypted_request = json.loads(Encryption.decrypt_message(encrypted_request))
+            if decrypted_request.get("action") != "load_data":
+                raise ValueError("[ERROR] Solicitud inválida recibida en el servidor.")
+            
+            # Cargar datos (simulación de datos del servidor)
+            data = Renting.load_data()
+            encrypted_response = Encryption.encrypt_message(json.dumps(data))
+            
+            # Descifrar respuesta del servidor en el cliente
+            print("[INFO] Descifrando datos recibidos del servidor...")
+            response_data = json.loads(Encryption.decrypt_message(encrypted_response))
+            
+            if not isinstance(response_data, list):
+                raise ValueError("[ERROR] Los datos descifrados no tienen el formato esperado.")
+            
             print(f"\nSus reservas, señor/a {name}:")
-                
+            
             # Mostramos todas las reservas del usuario
-            for reserve in data:
+            for reserve in response_data:
                 if 'name' in reserve and reserve['name'] == name:
                     print('\n')
                     print(f"Reserva del coche {reserve['car']}")
                     print(f"Día y hora de entrega: {reserve['rent_time']}")
                     print(f"Día y hora de devolución: {reserve['return_time']}")
                     print(f"Número de reserva: {reserve['reserve_number']}")
-                
-            # Volvemos a guardar la base de datos encriptada
-            Renting.save_data(data)
             
             Renting.loading()
-                    
+                
             Renting.user_reservations(name)
-
         except Exception as e:
-            print(f'No se han podido mostrar las reservas: {e}')
+            print(f'Error al mostrar las reservas: {e}')
         
     @staticmethod
     def cancel_reservation(name):
