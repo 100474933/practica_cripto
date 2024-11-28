@@ -1050,10 +1050,10 @@ class Encryption:
                 "signature": base64.b64encode(signature).decode('utf-8')
             }).encode('utf-8')
 
-            # Cifrar usando ChaCha20Poly1305
-            chacha = ChaCha20Poly1305(session_key)
-            nonce = os.urandom(12)
-            ciphertext = chacha.encrypt(nonce, message_with_signature, None)
+            # Cifrar usando la clave de sesión directamente
+            fernet = Fernet(base64.urlsafe_b64encode(session_key))
+            ciphertext = fernet.encrypt(message_with_signature)
+            nonce = b''  # No se necesita nonce con Fernet
 
             print("[INFO] Mensaje cifrado exitosamente.")
             return {"nonce": nonce.hex(), "ciphertext": ciphertext.hex()}
@@ -1068,11 +1068,10 @@ class Encryption:
             session_key = Encryption.get_session_key(client, username)
             public_key = Encryption.get_public_key(client, username)
 
-            # Descifrar con ChaCha20Poly1305
-            chacha = ChaCha20Poly1305(session_key)
-            nonce = bytes.fromhex(encrypted_data['nonce'])
+            # Descifrar usando la clave de sesión directamente
+            fernet = Fernet(base64.urlsafe_b64encode(session_key))
             ciphertext = bytes.fromhex(encrypted_data['ciphertext'])
-            message_with_signature = chacha.decrypt(nonce, ciphertext, None)
+            message_with_signature = fernet.decrypt(ciphertext)
 
             # Separar mensaje y firma
             message_data = json.loads(message_with_signature.decode('utf-8'))
