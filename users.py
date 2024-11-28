@@ -138,10 +138,6 @@ class Users:
                         # Guardar estado de login
                         Users.save_data(data)
 
-                        # Generar clave de sesión
-                        session_key = Encryption.crear_clave_sesion(name)
-                        print(f"[DEBUG] Clave de sesión generada: {session_key}")
-
                         break
                     else:
                         print("[ERROR] Contraseña incorrecta.")
